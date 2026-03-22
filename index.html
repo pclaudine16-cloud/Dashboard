@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Supply Pilot/title>
+<title>Supply pilot</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 :root {
@@ -87,16 +87,38 @@ footer.note { margin-top:18px; color:var(--muted); font-size:12px; text-align:ri
   aside { display:none; } body { display:block; } main { padding:16px; }
   .grid.cols-4, .grid.cols-3, .grid.cols-2, .form-grid, .metric-row, .swimlane { grid-template-columns:1fr; }
 }
+
+.monitor-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;}
+.monitor-card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);border-radius:18px;padding:16px;box-shadow:var(--shadow);}
+.monitor-card .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;}
+.monitor-card .value{font-size:28px;font-weight:800;margin-top:10px;}
+.monitor-card .delta{color:var(--muted);font-size:13px;margin-top:6px;}
+.quick-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px;}
+.quick-link{cursor:pointer;transition:.2s ease;}
+.quick-link:hover{transform:translateY(-2px);border-color:rgba(96,165,250,.35);}
+.alert-list{display:flex;flex-direction:column;gap:10px;}
+.alert-item{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);}
+.alert-item strong{display:block;font-size:14px;}
+.alert-item p{margin:4px 0 0 0;color:var(--muted);font-size:12px;line-height:1.45;}
+.exception-table td,.exception-table th{vertical-align:top;}
+.exception-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.exception-form .full{grid-column:1/-1;}
+.panel-note{padding:12px 14px;border-radius:14px;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.18);color:#dbeafe;font-size:13px;line-height:1.5;}
+.live-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent-2);box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pulse 1.8s infinite;vertical-align:middle;margin-right:8px;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 10px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+@media (max-width:1100px){.monitor-grid,.quick-links,.exception-form{grid-template-columns:1fr 1fr;}}
+@media (max-width:720px){.monitor-grid,.quick-links,.exception-form{grid-template-columns:1fr;}}
+
 </style>
 </head>
 <body>
 <aside>
   <div class="brand">
     <div class="logo">SP</div>
-    <div><h1>Supply Pilot</h1><p>Application de gestion d’inventaire et d’optimisation logistique</p></div>
+    <div><h1>Supply pilot</h1><p>Application professionnelle de gestion d'inventaire, d'achats et de surveillance opérationnelle.</p></div>
   </div>
   <button class="nav-btn active" data-page="dashboard"><span class="nav-icon">⊞</span> Dashboard</button>
-  <button class="nav-btn" data-page="inventory"><span class="nav-icon">📦</span> Inventaire CRUD</button>
+  <button class="nav-btn" data-page="inventory"><span class="nav-icon">📦</span> Liste d'inventaire</button>
   <button class="nav-btn" data-page="processus"><span class="nav-icon">🔄</span> Processus UML</button>
   <button class="nav-btn" data-page="kpi"><span class="nav-icon">📊</span> KPI & TRS</button>
   <button class="nav-btn" data-page="abceoq"><span class="nav-icon">📐</span> ABC / EOQ</button>
@@ -476,5 +498,256 @@ resetBtn.addEventListener('click', () => { localStorage.removeItem(STORAGE_KEY);
 exportBtn.addEventListener('click', () => { const blob = new Blob([JSON.stringify(state.items, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'supplypilot_articles.json'; a.click(); });
 initTRSInputs(); renderAll();
 </script>
+
+<script>
+(function(){
+  function ensureMonitoringState(){
+    if(!state.monitoring) state.monitoring = {forms:[], lastRefresh:new Date().toLocaleString('fr-CA')};
+    if(!Array.isArray(state.monitoring.forms)) state.monitoring.forms = [];
+    if(!state.monitoring.lastRefresh) state.monitoring.lastRefresh = new Date().toLocaleString('fr-CA');
+  }
+  function addMonitoringUI(){
+    PAGE_INFO.monitoring = {title:'Surveillance & alertes', sub:'Vue en direct · écarts d\'inventaire · santé du stock · gestion des exceptions'};
+    const invBtn = document.querySelector('.nav-btn[data-page="inventory"]');
+    if(invBtn){
+      invBtn.innerHTML = '<span class="nav-icon">📦</span> Liste d\'inventaire';
+    }
+    if(!document.querySelector('.nav-btn[data-page="monitoring"]')){
+      const btn = document.createElement('button');
+      btn.className = 'nav-btn';
+      btn.dataset.page = 'monitoring';
+      btn.innerHTML = '<span class="nav-icon">🚨</span> Surveillance & alertes';
+      const processBtn = document.querySelector('.nav-btn[data-page="processus"]');
+      processBtn.parentNode.insertBefore(btn, processBtn);
+      btn.addEventListener('click', () => setPage('monitoring'));
+    }
+    const dash = document.getElementById('page-dashboard');
+    if(dash && !document.getElementById('quickLinksPanel')){
+      const panel = document.createElement('div');
+      panel.id = 'quickLinksPanel';
+      panel.className = 'quick-links';
+      panel.innerHTML = `
+        <div class="card quick-link" onclick="setPage('inventory')">
+          <h3>Liste d'inventaire modifiable</h3>
+          <div class="subtle">Accès rapide à la fiche article, au stock physique, transit, réservé et seuil minimum.</div>
+          <div style="margin-top:12px;" class="panel-note">Utilise cette page pour faire des ajustements manuels rapides pendant les comptages, écarts et validations superviseur.</div>
+        </div>
+        <div class="card quick-link" onclick="setPage('monitoring')">
+          <h3>Surveillance & alertes</h3>
+          <div class="subtle">Vue monitoring selon les pratiques industrie : direct, santé du stock, écarts et actions prioritaires.</div>
+          <div style="margin-top:12px;" class="panel-note"><span class="live-dot"></span>Surveille les exceptions ouvertes, les ruptures, les surstocks et les écarts signalés sur le terrain.</div>
+        </div>`;
+      dash.insertBefore(panel, dash.children[1]);
+    }
+    const inventorySection = document.getElementById('page-inventory');
+    if(inventorySection && !document.getElementById('inventoryAccessCard')){
+      const card = document.createElement('div');
+      card.id = 'inventoryAccessCard';
+      card.className = 'card';
+      card.style.marginBottom = '16px';
+      card.innerHTML = `<div class="flex-between"><div><h3>Liste d'inventaire modifiable</h3><div class="subtle">Page d'accès rapide pour les superviseurs. Les modifications sont sauvegardées localement dans le navigateur.</div></div><button class="action-btn" onclick="clearForm(); window.scrollTo({top:0,behavior:'smooth'});">Nouvel article</button></div><div class="panel-note" style="margin-top:14px;">Sélectionne une ligne, modifie les quantités ou ajoute un nouveau SKU. Chaque mise à jour recalcule automatiquement le BNMP, les KPI, l'ABC, l'EOQ, les messages d'action et le journal d'audit.</div>`;
+      inventorySection.prepend(card);
+    }
+    if(!document.getElementById('page-monitoring')){
+      const sec = document.createElement('section');
+      sec.className = 'page';
+      sec.id = 'page-monitoring';
+      sec.innerHTML = `
+        <div class="monitor-grid" id="monitorKpis"></div>
+        <div class="grid cols-2" style="margin-top:16px;">
+          <div class="card"><h3><span class="live-dot"></span>Vue en direct</h3><div class="subtle">Lecture opérationnelle des anomalies et variations à traiter maintenant</div><canvas id="chartMonitoringHealth"></canvas></div>
+          <div class="card"><h3>Écarts d'inventaire et santé du stock</h3><div class="subtle">Écarts système + déclarations terrain</div><canvas id="chartMonitoringExceptions"></canvas></div>
+        </div>
+        <div class="grid cols-2" style="margin-top:16px;">
+          <div class="card"><h3>Alertes prioritaires</h3><div class="subtle">Ce qu'un superviseur doit traiter en premier</div><div id="monitorAlerts" class="alert-list" style="margin-top:12px;"></div></div>
+          <div class="card"><h3>Formulaire — Écart d'inventaire</h3><div class="subtle">Formulaire inspiré des pratiques de comptage et d'analyse d'écart</div>
+            <form id="exceptionForm" class="exception-form" style="margin-top:12px;">
+              <div><label>Date / heure</label><input id="monDate" type="datetime-local" required></div>
+              <div><label>SKU concerné</label><select id="monSku" required></select></div>
+              <div><label>Zone / emplacement</label><input id="monZone" placeholder="Ex. Allée B - Rack 04" required></div>
+              <div><label>Type d'écart</label><select id="monType" required><option value="">Choisir</option><option>Comptage physique différent</option><option>Rupture non prévue</option><option>Surstock</option><option>Réservation incohérente</option><option>Transit non reçu</option><option>Dommage / qualité</option></select></div>
+              <div><label>Quantité système</label><input id="monSystemQty" type="number" step="1" required></div>
+              <div><label>Quantité comptée</label><input id="monCountedQty" type="number" step="1" required></div>
+              <div><label>Cause probable</label><select id="monCause"><option>À confirmer</option><option>Erreur de saisie</option><option>Erreur de picking</option><option>Retard fournisseur</option><option>Perte / vol</option><option>Article endommagé</option><option>Emplacement erroné</option></select></div>
+              <div><label>Niveau de criticité</label><select id="monSeverity"><option>Faible</option><option>Moyen</option><option>Élevé</option><option>Critique</option></select></div>
+              <div class="full"><label>Action immédiate recommandée</label><input id="monAction" placeholder="Ex. recompter, geler le SKU, vérifier les réceptions, lancer validation achat"></div>
+              <div class="full"><label>Commentaires</label><textarea id="monComment" rows="4" style="width:100%;padding:12px;border-radius:14px;background:#0d1430;color:var(--text);border:1px solid rgba(255,255,255,.08);"></textarea></div>
+              <div class="full" style="display:flex;align-items:center;gap:10px;"><input id="monApply" type="checkbox" style="width:auto;"><label for="monApply">Appliquer la correction de stock physique avec la quantité comptée</label></div>
+              <div class="full" style="display:flex;gap:10px;"><button class="action-btn" type="submit">Enregistrer l'écart</button><button class="ghost-btn" type="button" id="monResetBtn">Réinitialiser</button></div>
+            </form>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;"><div class="flex-between"><div><h3>Registre des exceptions</h3><div class="subtle">Ruptures, sous-seuil, surstocks et écarts saisis manuellement</div></div><div class="helper">Monitoring opérationnel continu</div></div><div class="table-wrap" style="margin-top:12px;"><table class="exception-table"><thead><tr><th>Priorité</th><th>Type</th><th>SKU</th><th>Article</th><th>Écart</th><th>Contexte</th><th>Action</th><th>Statut</th></tr></thead><tbody id="monitorExceptionsTable"></tbody></table></div></div>`;
+      inventorySection.insertAdjacentElement('afterend', sec);
+    }
+  }
+  function getMonitoringData(){
+    ensureMonitoringState();
+    const items = state.items || [];
+    const system = [];
+    items.forEach(item => {
+      const gap = Math.round(item.stockNet - item.seuilMin);
+      const variancePct = item.seuilMin ? ((item.stockNet - item.seuilMin) / item.seuilMin) * 100 : 0;
+      if(item.statutService === 'Rupture'){
+        system.push({kind:'system', priority:'Critique', type:'Rupture', sku:item.sku, article:item.article, ecart:Math.round(item.stockNet), context:`Net ${round(item.stockNet,0)} vs seuil ${round(item.seuilMin,0)} · couverture ${round(item.couverture,1)} j`, action:'Créer / accélérer le PO et sécuriser la demande', status:'Ouvert'});
+      } else if(item.statutService === 'Sous seuil'){
+        system.push({kind:'system', priority:item.abc === 'A' ? 'Élevé' : 'Moyen', type:'Sous seuil', sku:item.sku, article:item.article, ecart:gap, context:`Écart au seuil ${gap} u · ${item.abc} · lead time ${round(item.leadTime,0)} j`, action:item.abc === 'A' ? 'Réappro prioritaire + validation achat' : 'Planifier le réappro', status:'Ouvert'});
+      }
+      if(item.couverture > 90){
+        system.push({kind:'system', priority:'Moyen', type:'Surstock', sku:item.sku, article:item.article, ecart:Math.round(item.couverture), context:`Couverture ${round(item.couverture,1)} j · rotation lente`, action:'Réduire les commandes / reclasser la politique', status:'Surveillance'});
+      }
+      if(item.abc === 'A' && variancePct < -25){
+        system.push({kind:'system', priority:'Élevé', type:'Santé du stock', sku:item.sku, article:item.article, ecart:Math.round(variancePct), context:`Écart de ${round(variancePct,1)}% sous la cible pour un article A`, action:'Analyser consommation, réservation et fiabilité des données', status:'Ouvert'});
+      }
+    });
+    const manual = state.monitoring.forms.map(f => ({
+      kind:'manual',
+      priority:f.severity,
+      type:f.type,
+      sku:f.sku,
+      article:(state.items.find(x => x.sku === f.sku) || {}).article || '',
+      ecart:f.delta,
+      context:`${f.zone} · cause: ${f.cause}`,
+      action:f.action || 'Analyser puis corriger',
+      status:f.status,
+      id:f.id,
+      date:f.date
+    }));
+    const all = [...manual, ...system].sort((a,b) => severityRank(a.priority) - severityRank(b.priority));
+    const openManual = manual.filter(x => x.status !== 'Clos').length;
+    const ruptures = system.filter(x => x.type === 'Rupture').length;
+    const under = system.filter(x => x.type === 'Sous seuil').length;
+    const over = system.filter(x => x.type === 'Surstock').length;
+    const health = Math.max(0, Math.round(100 - ruptures * 12 - under * 4 - over * 2 - openManual * 5));
+    return {system, manual, all, ruptures, under, over, openManual, health};
+  }
+  function severityRank(v){ return ({'Critique':0,'Élevé':1,'Moyen':2,'Faible':3})[v] ?? 4; }
+  function severityBadge(v){
+    const cls = v === 'Critique' ? 'danger' : v === 'Élevé' ? 'warn' : v === 'Moyen' ? 'info' : 'ok';
+    return `<span class="badge ${cls}">${v}</span>`;
+  }
+  function renderMonitoring(){
+    ensureMonitoringState();
+    const data = getMonitoringData();
+    const now = new Date().toLocaleString('fr-CA');
+    state.monitoring.lastRefresh = now;
+    if(document.getElementById('monitorKpis')){
+      const cards = [
+        {label:'Vue en direct', value:`<span class="live-dot"></span>Active`, delta:`Dernière lecture ${now}`},
+        {label:'Écarts ouverts', value:data.all.filter(x => x.status !== 'Clos').length, delta:`${data.openManual} déclarés par formulaire`},
+        {label:'Santé du stock', value:`${data.health}/100`, delta:`Ruptures ${data.ruptures} · sous seuil ${data.under}`},
+        {label:'Articles à surveiller', value:data.over + data.under, delta:`Surstock ${data.over} · surveillance cycle count recommandée`},
+      ];
+      monitorKpis.innerHTML = cards.map(c => `<div class="monitor-card"><div class="label">${c.label}</div><div class="value">${c.value}</div><div class="delta">${c.delta}</div></div>`).join('');
+    }
+    const alerts = data.all.slice(0,6);
+    if(document.getElementById('monitorAlerts')){
+      monitorAlerts.innerHTML = alerts.map(a => `<div class="alert-item"><div><strong>${a.type} — ${a.sku}</strong><p>${a.article || ''}<br>${a.context}</p></div><div>${severityBadge(a.priority)}</div></div>`).join('') || `<div class="panel-note">Aucune alerte majeure pour le moment.</div>`;
+    }
+    if(document.getElementById('monitorExceptionsTable')){
+      monitorExceptionsTable.innerHTML = data.all.map(a => `<tr>
+        <td>${severityBadge(a.priority)}</td>
+        <td>${a.type}</td>
+        <td>${a.sku}</td>
+        <td>${a.article || '-'}</td>
+        <td>${typeof a.ecart === 'number' ? round(a.ecart,0) : a.ecart}</td>
+        <td>${a.context}</td>
+        <td>${a.action}${a.kind === 'manual' && a.status !== 'Clos' ? `<div style="margin-top:8px;"><button class="ghost-btn" onclick="closeException('${a.id}')">Clôturer</button></div>` : ''}</td>
+        <td>${a.status || 'Ouvert'}</td>
+      </tr>`).join('');
+    }
+    if(document.getElementById('monSku')){
+      const current = monSku.value;
+      monSku.innerHTML = '<option value="">Choisir un SKU</option>' + state.items.map(x => `<option value="${x.sku}">${x.sku} — ${x.article}</option>`).join('');
+      if(current) monSku.value = current;
+      if(!monDate.value){
+        const d = new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
+        monDate.value = d.toISOString().slice(0,16);
+      }
+    }
+    renderMonitoringCharts(data);
+    saveState();
+  }
+  function renderMonitoringCharts(data){
+    const healthData = [data.ruptures, data.under, data.over, Math.max(0, state.items.length - data.ruptures - data.under)];
+    if(charts.monitorHealth) charts.monitorHealth.destroy();
+    charts.monitorHealth = new Chart(document.getElementById('chartMonitoringHealth'), {
+      type:'doughnut',
+      data:{labels:['Ruptures','Sous seuil','Surstock','Conforme / stable'], datasets:[{data:healthData, backgroundColor:['rgba(239,68,68,.8)','rgba(245,158,11,.8)','rgba(139,92,246,.8)','rgba(34,197,94,.7)']} ]},
+      options:baseChartOptions()
+    });
+    const grouped = {};
+    data.all.slice(0,12).forEach(x => { grouped[x.sku] = (grouped[x.sku] || 0) + 1; });
+    const labels = Object.keys(grouped); const values = Object.values(grouped);
+    if(charts.monitorExceptions) charts.monitorExceptions.destroy();
+    charts.monitorExceptions = new Chart(document.getElementById('chartMonitoringExceptions'), {
+      type:'bar',
+      data:{labels:labels.length?labels:['Aucun'], datasets:[{label:'Nombre d\'exceptions', data:values.length?values:[0], backgroundColor:'rgba(96,165,250,.75)'}]},
+      options:baseChartOptions()
+    });
+  }
+  window.closeException = function(id){
+    ensureMonitoringState();
+    const ex = state.monitoring.forms.find(x => x.id === id);
+    if(!ex) return;
+    ex.status = 'Clos';
+    state.audit.unshift({date:new Date().toLocaleString('fr-CA'), type:'ALERT_CLOSED', user:'Superviseur', details:`Exception ${id} clôturée pour ${ex.sku}`});
+    saveState(); renderMonitoring(); renderAudit();
+  };
+  function hookMonitoringForm(){
+    const form = document.getElementById('exceptionForm');
+    if(!form || form.dataset.bound === '1') return;
+    form.dataset.bound = '1';
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      ensureMonitoringState();
+      const sku = monSku.value;
+      const item = state.items.find(x => x.sku === sku);
+      if(!item) return;
+      const systemQty = num(monSystemQty.value);
+      const countedQty = num(monCountedQty.value);
+      const delta = countedQty - systemQty;
+      const record = {
+        id:'EX-' + Date.now(),
+        date:monDate.value,
+        sku,
+        zone:monZone.value.trim(),
+        type:monType.value,
+        systemQty,
+        countedQty,
+        delta,
+        cause:monCause.value,
+        severity:monSeverity.value,
+        action:monAction.value.trim(),
+        comment:monComment.value.trim(),
+        status:'Ouvert'
+      };
+      state.monitoring.forms.unshift(record);
+      state.audit.unshift({date:new Date().toLocaleString('fr-CA'), type:'ALERT_REPORTED', user:'Superviseur', details:`Écart ${record.type} déclaré sur ${sku} (${delta >= 0 ? '+' : ''}${delta} u)`});
+      if(monApply.checked){
+        item.stockPhysique = countedQty;
+        recomputeItems(state.items);
+        state.audit.unshift({date:new Date().toLocaleString('fr-CA'), type:'STOCK_ADJUSTED', user:'Superviseur', details:`Stock physique corrigé manuellement pour ${sku} à ${countedQty} u via le formulaire de surveillance`});
+      }
+      saveState();
+      renderAll();
+      setPage('monitoring');
+      form.reset();
+      const d = new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); monDate.value = d.toISOString().slice(0,16);
+    });
+    document.getElementById('monResetBtn').addEventListener('click', () => { form.reset(); const d = new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); monDate.value = d.toISOString().slice(0,16); });
+    document.getElementById('monSku').addEventListener('change', () => {
+      const item = state.items.find(x => x.sku === monSku.value);
+      if(item){ monSystemQty.value = round(item.stockPhysique,0); monCountedQty.value = round(item.stockPhysique,0); }
+    });
+  }
+  addMonitoringUI();
+  ensureMonitoringState();
+  const baseRenderAll = renderAll;
+  renderAll = function(){ ensureMonitoringState(); baseRenderAll(); renderMonitoring(); hookMonitoringForm(); };
+  renderAll();
+})();
+</script>
+
 </body>
 </html>
