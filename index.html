@@ -749,5 +749,480 @@ initTRSInputs(); renderAll();
 })();
 </script>
 
+
+<style>
+.premium-banner{display:grid;grid-template-columns:1.4fr .8fr;gap:16px;margin-top:16px}
+.premium-card{background:linear-gradient(135deg,rgba(34,211,238,.12),rgba(139,92,246,.12));border:1px solid rgba(255,255,255,.08)}
+.priority-pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700}
+.priority-pill.critique{background:rgba(239,68,68,.14);color:#fecaca}
+.priority-pill.eleve{background:rgba(245,158,11,.14);color:#fde68a}
+.priority-pill.moyen{background:rgba(96,165,250,.14);color:#bfdbfe}
+.priority-pill.faible{background:rgba(34,197,94,.14);color:#bbf7d0}
+.transport-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.transport-table td,.transport-table th,.receiving-table td,.receiving-table th{white-space:nowrap}
+.transport-status{font-weight:700}
+.transport-status.retarde{color:#fca5a5}
+.transport-status.transit{color:#93c5fd}
+.transport-status.planifie{color:#c4b5fd}
+.transport-status.recu{color:#86efac}
+.ops-board{display:grid;grid-template-columns:1.05fr .95fr;gap:16px;margin-top:16px}
+.ops-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.score-ring{width:86px;height:86px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--accent) 0deg, var(--accent) 250deg, rgba(255,255,255,.08) 250deg);font-weight:800}
+.mini-list li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.action-inline{display:flex;gap:8px;flex-wrap:wrap}
+.header-actions{display:flex;gap:10px;flex-wrap:wrap}
+</style>
+<script>
+(function(){
+  const NEW_STORAGE_KEY = 'supplypilot-premium-state-v2';
+
+  function migrateStateKey(){
+    const current = localStorage.getItem(NEW_STORAGE_KEY);
+    if(!current){
+      const old = localStorage.getItem('supplypilot-fusion-state-v1');
+      if(old) localStorage.setItem(NEW_STORAGE_KEY, old);
+    }
+  }
+  migrateStateKey();
+
+  const oldLoadState = loadState;
+  loadState = function(){
+    const raw = localStorage.getItem(NEW_STORAGE_KEY);
+    if(raw){
+      try{
+        const parsed = JSON.parse(raw);
+        ensurePremiumState(parsed);
+        return parsed;
+      }catch(e){}
+    }
+    const fresh = oldLoadState();
+    ensurePremiumState(fresh);
+    return fresh;
+  };
+  const oldSaveState = saveState;
+  saveState = function(){
+    ensurePremiumState(state);
+    localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(state));
+  };
+
+  function ensurePremiumState(target){
+    if(!target.monitoring) target.monitoring = {forms:[], lastRefresh:new Date().toLocaleString('fr-CA')};
+    if(!Array.isArray(target.monitoring.forms)) target.monitoring.forms = [];
+    if(!target.transport) target.transport = {shipments:[], refreshedAt:new Date().toLocaleString('fr-CA')};
+    if(!Array.isArray(target.transport.shipments)) target.transport.shipments = [];
+    if(!target.roles) target.roles = {current:'Superviseur'};
+    hydrateTransportFromOrders(target);
+  }
+
+  function hydrateTransportFromOrders(target){
+    const existingMap = new Map((target.transport.shipments||[]).map(s => [s.poId, s]));
+    const carriers = ['Purolator Freight','Day & Ross','Groupe Robert','LTL Express'];
+    target.transport.shipments = (target.orders||[]).map((po, idx) => {
+      const base = existingMap.get(po.id) || {};
+      const supplier = getSupplierById(po.supplierId);
+      const created = po.date || '2026-03-21';
+      const lead = supplier.delai || 7;
+      const offset = idx % 4;
+      const plannedShip = base.plannedShip || addDays(created, offset);
+      const plannedReceipt = base.plannedReceipt || addDays(plannedShip, lead);
+      let status = base.status || (po.statut === 'RECU' || po.statut === 'CLOS' ? 'Reçu' : po.statut === 'ENVOYE' ? 'En transit' : po.statut === 'A_VALIDER' ? 'Planifié' : 'Planifié');
+      let eta = base.eta || plannedReceipt;
+      if(status === 'En transit' && idx % 6 === 0){ status = 'Retardé'; eta = addDays(plannedReceipt, 2); }
+      return {
+        poId: po.id,
+        sku: po.sku,
+        article: po.article,
+        supplierId: po.supplierId,
+        carrier: base.carrier || carriers[idx % carriers.length],
+        mode: base.mode || (idx % 3 === 0 ? 'LTL' : idx % 3 === 1 ? 'FTL' : 'Express'),
+        plannedShip,
+        plannedReceipt,
+        eta,
+        cost: Number(base.cost ?? Math.max(85, Math.round(po.qty * 2.4 + 55))),
+        status,
+        dock: base.dock || ('Q' + ((idx % 5)+1)),
+        priority: base.priority || (po.classe === 'A' ? 'Critique' : po.classe === 'B' ? 'Élevé' : 'Moyen'),
+        receivedPct: Number(base.receivedPct ?? (status === 'Reçu' ? 100 : status === 'En transit' ? 55 : status === 'Retardé' ? 35 : 0))
+      };
+    });
+  }
+
+  function addDays(str, days){
+    const d = new Date(str + 'T08:00:00');
+    d.setDate(d.getDate() + Number(days||0));
+    return d.toISOString().slice(0,10);
+  }
+
+  function severityClass(priority){
+    const v = (priority||'').toLowerCase();
+    if(v.includes('crit')) return 'critique';
+    if(v.includes('élev') || v.includes('elev')) return 'eleve';
+    if(v.includes('moy')) return 'moyen';
+    return 'faible';
+  }
+
+  function riskPriorityForItem(item){
+    if(item.statutService === 'Rupture' && item.abc === 'A') return 'Critique';
+    if(item.statutService === 'Rupture' || (item.statutService === 'Sous seuil' && item.abc === 'A')) return 'Élevé';
+    if(item.couverture > 90) return 'Moyen';
+    return 'Faible';
+  }
+
+  window.createManualPOFromSku = function(sku, source='manuel'){
+    const item = state.items.find(x => x.sku === sku);
+    if(!item){ alert('SKU introuvable.'); return; }
+    const existing = state.orders.find(o => o.sku === sku && o.statut !== 'CLOS');
+    if(existing){
+      alert('Un PO ouvert existe déjà pour ce SKU : ' + existing.id);
+      setPage('orders');
+      return;
+    }
+    const supplier = getSupplierById(item.supplierId);
+    if(supplier.statut !== 'actif'){
+      alert('Le fournisseur associé est inactif. Validation requise avant création.');
+      return;
+    }
+    const qtyGap = Math.max(1, Math.ceil(item.seuilMin - item.stockNet + 10));
+    const qty = Math.min(Math.ceil(item.eoq * 2), Math.max(Math.ceil(item.eoq || 1), qtyGap));
+    const po = {
+      id:'PO-' + (1000 + state.orders.length + 1),
+      sku:item.sku,
+      article:item.article,
+      classe:item.abc,
+      net:round(item.stockNet,0),
+      seuil:round(item.seuilMin,0),
+      qty,
+      supplierId:item.supplierId,
+      date:new Date().toISOString().slice(0,10),
+      statut:'BROUILLON',
+      auto:false,
+      source
+    };
+    state.orders.unshift(po);
+    hydrateTransportFromOrders(state);
+    state.audit.unshift({date:new Date().toISOString().slice(0,16).replace('T',' '), type:'PO_CREATED', user:'superviseur', details:`${po.id} créé pour ${sku} via ${source}`});
+    saveState();
+    renderAll();
+    setPage('orders');
+  };
+
+  function addGlobalButtons(){
+    const top = document.querySelector('.top-actions');
+    if(top && !document.getElementById('globalNewPoBtn')){
+      const btn = document.createElement('button');
+      btn.id = 'globalNewPoBtn';
+      btn.className = 'action-btn';
+      btn.textContent = 'Nouveau PO';
+      btn.onclick = function(){
+        const critical = [...state.items].filter(x => x.statutService !== 'Conforme').sort((a,b)=>a.stockNet-b.stockNet)[0];
+        if(critical) createManualPOFromSku(critical.sku, 'topbar');
+      };
+      top.prepend(btn);
+    }
+  }
+
+  function addTransportUI(){
+    PAGE_INFO.transport = {title:'Transport & réceptions', sub:'Expéditions fournisseurs · ETA · retards · quais de réception · coûts logistiques'};
+    if(!document.querySelector('.nav-btn[data-page="transport"]')){
+      const btn = document.createElement('button');
+      btn.className = 'nav-btn';
+      btn.dataset.page = 'transport';
+      btn.innerHTML = '<span class="nav-icon">🚚</span> Transport & réceptions';
+      const ordersBtn = document.querySelector('.nav-btn[data-page="orders"]');
+      ordersBtn.parentNode.insertBefore(btn, ordersBtn);
+      btn.addEventListener('click', () => setPage('transport'));
+    }
+    if(!document.getElementById('page-transport')){
+      const sec = document.createElement('section');
+      sec.className = 'page';
+      sec.id = 'page-transport';
+      sec.innerHTML = `
+        <div class="transport-kpi" id="transportKpis"></div>
+        <div class="grid cols-2" style="margin-top:16px;">
+          <div class="card">
+            <div class="flex-between"><div><h3>Suivi des expéditions fournisseurs</h3><div class="subtle">Visibilité du transit, ETA, transporteur et statut</div></div><button class="ghost-btn" onclick="setPage('orders')">Voir les PO</button></div>
+            <div class="table-wrap" style="margin-top:12px;"><table class="transport-table"><thead><tr><th>PO</th><th>SKU</th><th>Transporteur</th><th>Mode</th><th>Départ prévu</th><th>ETA</th><th>Statut</th><th>Quai</th><th>Coût</th></tr></thead><tbody id="transportTable"></tbody></table></div>
+          </div>
+          <div class="card">
+            <h3>Transport impact sur le service</h3>
+            <div class="subtle">Lien entre retard transit, couverture et risque de rupture</div>
+            <canvas id="chartTransportRisk" style="margin-top:10px;"></canvas>
+          </div>
+        </div>
+        <div class="grid cols-2" style="margin-top:16px;">
+          <div class="card">
+            <h3>Priorités de réception</h3>
+            <div class="subtle">Ce que l'entrepôt doit décharger et contrôler en premier</div>
+            <div class="table-wrap" style="margin-top:12px;"><table class="receiving-table"><thead><tr><th>Priorité</th><th>SKU</th><th>Article</th><th>ETA</th><th>Risque</th><th>Action réception</th></tr></thead><tbody id="receivingTable"></tbody></table></div>
+          </div>
+          <div class="card">
+            <h3>Coût logistique d'approvisionnement</h3>
+            <div class="subtle">Vision combinée commande + possession + rupture + transport</div>
+            <div class="ops-grid" id="logisticsCostBoard" style="margin-top:12px;"></div>
+          </div>
+        </div>`;
+      document.querySelector('footer.note').before(sec);
+    }
+  }
+
+  function ensurePremiumDashboard(){
+    const dash = document.getElementById('page-dashboard');
+    if(dash && !document.getElementById('premiumBanner')){
+      const block = document.createElement('div');
+      block.id = 'premiumBanner';
+      block.className = 'premium-banner';
+      block.innerHTML = `
+        <div class="card premium-card">
+          <div class="flex-between"><div><h3>Cockpit exécutif premium</h3><div class="subtle">Synthèse direction : service, risques, transport et exceptions</div></div><div class="score-ring" id="opsScoreRing">--</div></div>
+          <div class="ops-board">
+            <div>
+              <ul class="mini-list" id="premiumInsights"></ul>
+            </div>
+            <div>
+              <div class="panel-note">Ce panneau relie l'inventaire, les achats et le transport pour montrer où intervenir en premier.</div>
+              <div class="ops-grid" style="margin-top:12px;" id="premiumQuickStats"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="flex-between"><div><h3>Centre d'exceptions</h3><div class="subtle">Alertes critiques, retards transit et corrections terrain</div></div><button class="action-btn" onclick="setPage('monitoring')">Ouvrir</button></div>
+          <div id="dashboardExceptionSummary" style="margin-top:12px;"></div>
+        </div>`;
+      dash.prepend(block);
+    }
+  }
+
+  const originalRenderDashboard = renderDashboard;
+  renderDashboard = function(){
+    originalRenderDashboard();
+    ensurePremiumDashboard();
+    ensurePremiumState(state);
+    const delayed = state.transport.shipments.filter(s => s.status === 'Retardé').length;
+    const openEx = [...(state.monitoring.forms||[]), ...state.items.filter(i => i.statutService !== 'Conforme')].length;
+    const service = getMetrics().service;
+    const score = Math.max(45, Math.min(98, Math.round(service - delayed*2 - state.items.filter(i=>i.statutService==='Rupture').length * 1.5 + 8)));
+    const ring = document.getElementById('opsScoreRing');
+    if(ring){
+      ring.style.background = `conic-gradient(var(--accent) 0deg, var(--accent) ${score*3.6}deg, rgba(255,255,255,.08) ${score*3.6}deg)`;
+      ring.textContent = score;
+    }
+    const insights = [
+      ['Service interne', pct(service), `${state.items.filter(i=>i.statutService==='Conforme').length}/${state.items.length} SKU conformes`],
+      ['Expéditions retardées', delayed, `${state.transport.shipments.length} mouvements suivis`],
+      ['Exceptions ouvertes', openEx, 'monitoring terrain + écarts système'],
+      ['PO à valider', state.orders.filter(o=>o.statut==='A_VALIDER').length, 'charge achats à traiter']
+    ];
+    const insightsEl = document.getElementById('premiumInsights');
+    if(insightsEl) insightsEl.innerHTML = insights.map(x => `<li><span>${x[0]}</span><strong>${x[1]}<br><small class="subtle">${x[2]}</small></strong></li>`).join('');
+    const quick = document.getElementById('premiumQuickStats');
+    if(quick){
+      const cards = [
+        ['OTIF transport', pct(calcTransportMetrics().otif,1)],
+        ['Couverture A', round(avgCoverageForClass('A'),1) + ' j'],
+        ['Retards critiques', state.transport.shipments.filter(s => s.status==='Retardé' && s.priority==='Critique').length],
+        ['Coût transit', money(calcTransportMetrics().transportCost)]
+      ];
+      quick.innerHTML = cards.map(c => `<div class="metric-box"><div class="muted">${c[0]}</div><div class="kpi-value" style="font-size:22px">${c[1]}</div></div>`).join('');
+    }
+    const exc = document.getElementById('dashboardExceptionSummary');
+    if(exc){
+      const top = getMonitoringRows().slice(0,4);
+      exc.innerHTML = top.map(x => `<div class="alert-item"><div><strong>${x.type} · ${x.sku}</strong><p>${x.context}</p></div><div class="priority-pill ${severityClass(x.priority)}">${x.priority}</div></div>`).join('') || `<div class="panel-note">Aucune exception majeure.</div>`;
+    }
+  };
+
+  const originalRenderInventory = renderInventory;
+  renderInventory = function(){
+    const q = searchInput.value.trim().toLowerCase(); const fam = familyFilter.value; const abc = abcFilter.value; const status = statusFilter.value;
+    const rows = state.items.filter(x => (!q || x.sku.toLowerCase().includes(q) || x.article.toLowerCase().includes(q)) && (!fam || x.famille === fam) && (!abc || x.abc === abc) && (!status || x.statutService === status));
+    inventoryTable.innerHTML = rows.slice(0,150).map(x => `<tr data-id="${x.id}" class="item-row"><td>${x.sku}</td><td>${x.article}</td><td>${x.famille}</td><td>${x.abc}</td><td>${round(x.stockPhysique,0)}</td><td>${round(x.stockTransit,0)}</td><td>${round(x.stockReserve,0)}</td><td>${round(x.stockNet,0)}</td><td>${round(x.seuilMin,0)}</td><td>${round(x.couverture,1)} j</td><td>${badgeForStatus(x.statutService)}</td><td>${round(x.eoq,0)}</td><td><button class="ghost-btn" onclick="event.stopPropagation();createManualPOFromSku('${x.sku}','inventaire')">Créer un PO</button></td></tr>`).join("");
+    const head = inventoryTable.closest('table').querySelector('thead tr');
+    if(head && head.children.length < 13){
+      const th = document.createElement('th'); th.textContent = 'Action'; head.appendChild(th);
+    }
+    document.querySelectorAll('.item-row').forEach(el => { el.onclick = () => selectItem(Number(el.dataset.id)); });
+  };
+
+  function getMonitoringRows(){
+    const system = [];
+    state.items.forEach(item => {
+      const gap = Math.round(item.stockNet - item.seuilMin);
+      if(item.statutService === 'Rupture'){
+        system.push({kind:'system', priority:riskPriorityForItem(item), type:'Rupture', sku:item.sku, article:item.article, ecart:Math.round(item.stockNet), context:`Net ${round(item.stockNet,0)} vs seuil ${round(item.seuilMin,0)} · couverture ${round(item.couverture,1)} j`, action:'Créer / accélérer le PO et sécuriser la demande', status:'Ouvert'});
+      } else if(item.statutService === 'Sous seuil'){
+        system.push({kind:'system', priority:riskPriorityForItem(item), type:'Sous seuil', sku:item.sku, article:item.article, ecart:gap, context:`Écart au seuil ${gap} u · ${item.abc} · lead time ${round(item.leadTime,0)} j`, action:item.abc === 'A' ? 'Réappro prioritaire + validation achat' : 'Planifier le réappro', status:'Ouvert'});
+      }
+      if(item.couverture > 90){
+        system.push({kind:'system', priority:'Moyen', type:'Surstock', sku:item.sku, article:item.article, ecart:Math.round(item.couverture), context:`Couverture ${round(item.couverture,1)} j · rotation lente`, action:'Réduire les commandes / lancer déstockage', status:'Ouvert'});
+      }
+    });
+    const manual = (state.monitoring.forms||[]).map(f => ({
+      kind:'manual',
+      priority:f.severity,
+      type:f.type,
+      sku:f.sku,
+      article:f.article || '',
+      ecart:Number(f.countedQty) - Number(f.systemQty),
+      context:`${f.zone} · cause ${f.cause} · qty système ${f.systemQty} / comptée ${f.countedQty}`,
+      action:f.action || 'Analyser',
+      status:f.status || 'Ouvert'
+    }));
+    return [...manual, ...system].sort((a,b)=>{
+      const rank = {'Critique':4,'Élevé':3,'Moyen':2,'Faible':1};
+      return (rank[b.priority]||0) - (rank[a.priority]||0);
+    });
+  }
+
+  const originalRenderMonitoring = renderMonitoring;
+  renderMonitoring = function(){
+    originalRenderMonitoring();
+    const rows = getMonitoringRows();
+    if(document.getElementById('monitorAlerts')){
+      monitorAlerts.innerHTML = rows.slice(0,6).map(a => `<div class="alert-item"><div><strong>${a.type} — ${a.sku}</strong><p>${a.article || ''}<br>${a.context}</p><div class="action-inline"><button class="ghost-btn" onclick="createManualPOFromSku('${a.sku}','surveillance')">Nouveau PO</button><button class="ghost-btn" onclick="setPage('inventory')">Voir SKU</button></div></div><div class="priority-pill ${severityClass(a.priority)}">${a.priority}</div></div>`).join('') || `<div class="panel-note">Aucune alerte majeure pour le moment.</div>`;
+    }
+    if(document.getElementById('monitorExceptionsTable')){
+      const head = monitorExceptionsTable.closest('table').querySelector('thead tr');
+      if(head && head.children.length < 9){
+        const th=document.createElement('th'); th.textContent='Créer PO'; head.appendChild(th);
+      }
+      monitorExceptionsTable.innerHTML = rows.map(a => `<tr><td><span class="priority-pill ${severityClass(a.priority)}">${a.priority}</span></td><td>${a.type}</td><td>${a.sku}</td><td>${a.article || ''}</td><td>${a.ecart}</td><td>${a.context}</td><td>${a.action}</td><td>${a.status}</td><td><button class="ghost-btn" onclick="createManualPOFromSku('${a.sku}','exception')">Nouveau PO</button></td></tr>`).join('');
+    }
+  };
+
+  const originalRenderOrders = renderOrders;
+  renderOrders = function(){
+    ensurePremiumState(state);
+    hydrateTransportFromOrders(state);
+    const metrics = calcTransportMetrics();
+    const cards = [
+      {label:'PO ouverts', value:state.orders.filter(x=>x.statut!=='CLOS').length},
+      {label:'Brouillons', value:state.orders.filter(x=>x.statut==='BROUILLON').length},
+      {label:'À valider', value:state.orders.filter(x=>x.statut==='A_VALIDER').length},
+      {label:'Transit retardé', value:metrics.delayed}
+    ];
+    orderKpis.innerHTML = cards.map(c => `<div class="card kpi-card"><div class="kpi-label">${c.label}</div><div class="kpi-value">${c.value}</div></div>`).join("");
+    const container = document.getElementById('page-orders').querySelector('.card');
+    if(container && !document.getElementById('orderHeaderActions')){
+      const box = document.createElement('div');
+      box.id='orderHeaderActions';
+      box.className='header-actions';
+      box.innerHTML = `<button class="action-btn" onclick="window.createManualPOFromSku(state.items.find(x=>x.statutService!=='Conforme')?.sku || state.items[0].sku,'orders')">Nouveau PO</button><button class="ghost-btn" onclick="setPage('transport')">Voir le transport</button>`;
+      container.insertBefore(box, container.querySelector('.table-wrap'));
+      box.style.margin='12px 0 0';
+    }
+    const table = document.getElementById('ordersTable');
+    const head = table.closest('table').querySelector('thead tr');
+    ['Mode','ETA','Transport'].forEach(label => {
+      if(!Array.from(head.children).some(th => th.textContent===label)){
+        const th = document.createElement('th'); th.textContent = label; head.insertBefore(th, head.children[9]);
+      }
+    });
+    table.innerHTML = state.orders.map(po => {
+      const supplier = getSupplierById(po.supplierId);
+      const ship = state.transport.shipments.find(s => s.poId === po.id) || {};
+      return `<tr><td>${po.id}</td><td>${po.sku}</td><td>${po.article}</td><td>${po.classe}</td><td>${po.net}</td><td>${po.seuil}</td><td>${po.qty}</td><td>${supplier.nom}</td><td>${badgeForStatus(po.statut)}</td><td>${ship.mode||'-'}</td><td>${ship.eta||'-'}</td><td>${ship.status||'-'}</td><td>${po.date}</td><td><div class="action-inline"><button class="ghost-btn" onclick="advanceOrder('${po.id}')">Avancer</button><button class="ghost-btn" onclick="setPage('transport')">Transit</button></div></td></tr>`;
+    }).join("");
+  };
+
+  function calcTransportMetrics(){
+    ensurePremiumState(state);
+    const ships = state.transport.shipments || [];
+    const delayed = ships.filter(s => s.status === 'Retardé').length;
+    const ontime = ships.filter(s => s.status !== 'Retardé').length;
+    const otif = ships.length ? ontime / ships.length * 100 : 100;
+    return {
+      total: ships.length,
+      delayed,
+      inTransit: ships.filter(s => ['En transit','Retardé'].includes(s.status)).length,
+      otif,
+      transportCost: ships.reduce((s,x)=>s + Number(x.cost||0),0)
+    };
+  }
+
+  function avgCoverageForClass(classe){
+    const rows = state.items.filter(i => i.abc === classe);
+    return rows.length ? rows.reduce((s,x)=>s + x.couverture,0)/rows.length : 0;
+  }
+
+  function renderTransport(){
+    ensurePremiumState(state);
+    hydrateTransportFromOrders(state);
+    const metrics = calcTransportMetrics();
+    if(document.getElementById('transportKpis')){
+      const kpis = [
+        ['Expéditions suivies', metrics.total, `${metrics.inTransit} en transit`],
+        ['Retards transport', metrics.delayed, `${pct(metrics.otif,1)} OTIF`],
+        ['Coût transport', money(metrics.transportCost), 'coût estimé cumulatif'],
+        ['Réceptions critiques', state.transport.shipments.filter(s => s.priority==='Critique').length, 'à décharger en priorité']
+      ];
+      transportKpis.innerHTML = kpis.map(k => `<div class="card kpi-card"><div class="kpi-label">${k[0]}</div><div class="kpi-value">${k[1]}</div><div class="kpi-delta">${k[2]}</div></div>`).join('');
+    }
+    if(document.getElementById('transportTable')){
+      transportTable.innerHTML = state.transport.shipments.map(s => `<tr><td>${s.poId}</td><td>${s.sku}</td><td>${s.carrier}</td><td>${s.mode}</td><td>${s.plannedShip}</td><td>${s.eta}</td><td class="transport-status ${s.status.toLowerCase().replace(/[^a-z]/g,'')}">${s.status}</td><td>${s.dock}</td><td>${money(s.cost)}</td></tr>`).join('');
+    }
+    if(document.getElementById('receivingTable')){
+      const rows = state.transport.shipments
+        .map(s => {
+          const item = state.items.find(i => i.sku === s.sku) || {};
+          const risk = item.statutService === 'Rupture' ? 'Risque rupture' : item.statutService === 'Sous seuil' ? 'Sous seuil' : 'Standard';
+          const action = risk !== 'Standard' ? 'Décharger + contrôler immédiatement' : 'Réception normale';
+          return {...s, risk, action, priority:item.abc === 'A' ? 'Critique' : s.priority};
+        })
+        .sort((a,b) => ({Critique:3,'Élevé':2,'Moyen':1}[b.priority]||0) - ({Critique:3,'Élevé':2,'Moyen':1}[a.priority]||0))
+        .slice(0,12);
+      receivingTable.innerHTML = rows.map(s => `<tr><td><span class="priority-pill ${severityClass(s.priority)}">${s.priority}</span></td><td>${s.sku}</td><td>${s.article}</td><td>${s.eta}</td><td>${s.risk}</td><td>${s.action}</td></tr>`).join('');
+    }
+    if(document.getElementById('logisticsCostBoard')){
+      const ordering = state.items.reduce((s,x)=>s + Number(x.coutCommande||0),0);
+      const holding = state.items.reduce((s,x)=>s + Number(x.hAnnuel||0),0);
+      const rupture = state.items.filter(x => x.statutService === 'Rupture').reduce((s,x)=>s + Math.max(150, x.coutUnit*0.4),0);
+      const board = [
+        ['Coût de commande', money(ordering)],
+        ['Coût de possession', money(holding)],
+        ['Coût de rupture estimé', money(rupture)],
+        ['Coût transport estimé', money(calcTransportMetrics().transportCost)]
+      ];
+      logisticsCostBoard.innerHTML = board.map(b => `<div class="metric-box"><div class="muted">${b[0]}</div><div class="kpi-value" style="font-size:22px">${b[1]}</div></div>`).join('');
+    }
+    renderTransportChart();
+  }
+
+  function renderTransportChart(){
+    const ctx = document.getElementById('chartTransportRisk');
+    if(!ctx) return;
+    if(charts.transportRisk) charts.transportRisk.destroy();
+    const rows = state.transport.shipments.slice(0,10);
+    charts.transportRisk = new Chart(ctx, {
+      type:'bar',
+      data:{
+        labels: rows.map(r => r.sku),
+        datasets:[
+          {label:'Risque transport', data: rows.map(r => r.status === 'Retardé' ? 90 : r.status === 'En transit' ? 55 : 20), backgroundColor:'rgba(96,165,250,.7)'},
+          {label:'Risque service', data: rows.map(r => {
+            const item = state.items.find(i => i.sku === r.sku);
+            return item?.statutService === 'Rupture' ? 100 : item?.statutService === 'Sous seuil' ? 70 : 25;
+          }), backgroundColor:'rgba(239,68,68,.55)'}
+        ]
+      },
+      options:{responsive:true, plugins:{legend:{labels:{color:'#eef3ff'}}}, scales:{x:{ticks:{color:'#9fb0d8'}}, y:{ticks:{color:'#9fb0d8'}, beginAtZero:true, max:100}}}
+    });
+  }
+
+  const baseRenderAll2 = renderAll;
+  renderAll = function(){
+    ensurePremiumState(state);
+    hydrateTransportFromOrders(state);
+    addGlobalButtons();
+    addTransportUI();
+    baseRenderAll2();
+    renderTransport();
+  };
+
+  state = loadState();
+  ensurePremiumState(state);
+  renderAll();
+})();
+</script>
+
 </body>
 </html>
