@@ -82,7 +82,7 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
       <div class="logo">SP</div>
       <div><h1>Supply pilot</h1><p>Suite premium inventaire, achats et transport</p></div>
     </div>
-    <button class="navbtn active" data-page="dashboard"><span>⊞ Dashboard exécutif</span><span class="badge">Live</span></button>
+    <button class="navbtn active" data-page="dashboard"><span>⊞ Dashboard</span><span class="badge">Live</span></button>
     <button class="navbtn" data-page="stock"><span>✏️ Stock éditable</span><span class="badge">CRUD</span></button>
     <button class="navbtn" data-page="surveillance"><span>📡 Surveillance & alertes</span><span class="badge" id="survBadge">0</span></button>
     <button class="navbtn" data-page="transport"><span>🚚 Transport & réceptions</span><span class="badge" id="transportBadge">0</span></button>
@@ -95,7 +95,7 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
   <main class="main">
     <div class="topbar">
       <div class="titleblock">
-        <h2 id="pageTitle">Dashboard exécutif</h2>
+        <h2 id="pageTitle">Dashboard</h2>
         <p id="pageSubtitle">Vue direction : inventaire, service, achats, transport et exceptions.</p>
       </div>
       <div class="toolbar">
@@ -105,10 +105,6 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
     </div>
 
     <section class="section active" id="dashboard">
-      <div class="hero">
-        <strong>Version premium transport activée.</strong>
-        <div class="small" style="margin-top:6px">Cette version relie inventaire, achats et transport pour identifier les risques de service, les retards d'approvisionnement et les opportunités d'optimisation.</div>
-      </div>
       <div class="grid kpi">
         <div class="card metric"><div class="label">Valeur inventaire</div><div class="value" id="mInventoryValue"></div><div class="sub">Portefeuille de 400 SKU actifs</div></div>
         <div class="card metric"><div class="label">Taux de service</div><div class="value" id="mServiceRate"></div><div class="sub">SKU avec net ≥ seuil minimum</div></div>
@@ -184,7 +180,6 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
     </section>
 
     <section class="section" id="transport">
-      <div class="hero"><strong>Module transport & réceptions</strong><div class="small" style="margin-top:6px">Suivi des expéditions fournisseurs, ETA, retards, quais, coûts et impact sur le service interne.</div></div>
       <div class="grid kpi">
         <div class="card metric"><div class="label">Expéditions actives</div><div class="value" id="shipActive"></div><div class="sub">Planifiées ou en transit</div></div>
         <div class="card metric"><div class="label">Retards</div><div class="value" id="shipLate"></div><div class="sub">Nécessitent escalade</div></div>
@@ -221,7 +216,11 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
         <div class="card"><h3 style="margin-top:0">KPI stock & optimisation</h3><canvas id="stockStatusChart" height="190"></canvas><div class="small" style="margin-top:8px">Couverture moyenne : <strong id="avgCoverageOut"></strong> jours · EOQ moyen : <strong id="avgEOQOut"></strong></div></div>
         <div class="card"><h3 style="margin-top:0">TRS opérationnel</h3><canvas id="trsChart" height="210"></canvas><div class="small" id="trsExplain" style="margin-top:8px"></div></div>
       </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card" style="grid-column:1 / -1"><h3 style="margin-top:0">Analyse TRS détaillée</h3><div class="kpi-mini" style="margin-bottom:12px"><div class="mini"><div class="small">Disponibilité</div><div class="value" id="trsAvailOut" style="font-size:24px"></div></div><div class="mini"><div class="small">Performance</div><div class="value" id="trsPerfOut" style="font-size:24px"></div></div><div class="mini"><div class="small">Qualité</div><div class="value" id="trsQualOut" style="font-size:24px"></div></div></div><div class="tablewrap"><table><thead><tr><th>Dimension</th><th>Réel</th><th>Cible</th><th>Écart</th><th>Lecture opérationnelle</th></tr></thead><tbody id="trsDetailBody"></tbody></table></div></div>
+      </div>
       <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Articles A / B prioritaires</h3><div class="tablewrap"><table><thead><tr><th>SKU</th><th>Article</th><th>ABC</th><th>EOQ</th><th>ROP</th><th>Couverture</th><th>Politique</th><th>Économie potentielle</th></tr></thead><tbody id="abceoqBody"></tbody></table></div></div>
+      <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Optimisation du stock (EOQ)</h3><canvas id="eoqChart" height="140"></canvas><div class="small" id="eoqExplain" style="margin-top:8px"></div><div class="small" style="margin-top:8px">Appliqué principalement aux articles de classe A et B pour optimiser le coût total d'approvisionnement tout en limitant le surstock et les commandes trop fréquentes.</div></div>
     </section>
 
     <section class="section" id="audit">
@@ -264,7 +263,7 @@ const state = {
   trs: {"plannedHours": 160, "downtimeHours": 12, "runtimeHours": 148, "idealRate": 85, "availability": 92.5, "performance": 93.8, "quality": 97.6, "trs": 84.7, "badQty": 280, "totalQty": 11800}
 };
 const pageMeta = {
-  dashboard:["Dashboard exécutif","Vue direction : inventaire, service, achats, transport et exceptions."],
+  dashboard:["Dashboard","Vue direction : inventaire, service, achats, transport et exceptions."],
   stock:["Stock éditable","Liste d'inventaire modifiable et corrections manuelles."],
   surveillance:["Surveillance & alertes","Monitoring, écarts d'inventaire, santé du stock et actions correctives."],
   transport:["Transport & réceptions","Expéditions fournisseurs, ETA, retards, quais, coûts et impact service."],
@@ -440,8 +439,23 @@ function renderKPI(){
   document.getElementById('avgCoverageOut').textContent = state.metrics.avgCoverage + ' j';
   document.getElementById('avgEOQOut').textContent = state.metrics.avgEOQ + ' unités';
   const trs = state.trs;
+  const targets = {availability:90, performance:95, quality:99, trs:85};
   const lowest = [['Disponibilité',trs.availability],['Performance',trs.performance],['Qualité',trs.quality]].sort((a,b)=>a[1]-b[1])[0];
-  document.getElementById('trsExplain').textContent = `TRS = ${trs.trs}%. Le principal levier d'amélioration est actuellement : ${lowest[0]} (${lowest[1]}%).`;
+  document.getElementById('trsExplain').textContent = `TRS = ${trs.trs}%. Le principal levier d'amélioration est actuellement : ${lowest[0]} (${lowest[1]}%). Les écarts à la cible montrent où concentrer les actions terrain, la réduction des arrêts et le contrôle qualité.`;
+  document.getElementById('trsAvailOut').textContent = trs.availability + '%';
+  document.getElementById('trsPerfOut').textContent = trs.performance + '%';
+  document.getElementById('trsQualOut').textContent = trs.quality + '%';
+  const trsRows = [
+    ['Disponibilité', trs.availability, targets.availability, trs.availability-targets.availability, 'Réduire les arrêts, améliorer disponibilité poste'],
+    ['Performance', trs.performance, targets.performance, trs.performance-targets.performance, 'Améliorer cadence réelle vs théorique'],
+    ['Qualité', trs.quality, targets.quality, trs.quality-targets.quality, 'Réduire erreurs / non-conformes'],
+    ['TRS global', trs.trs, targets.trs, trs.trs-targets.trs, 'Synthèse disponibilité × performance × qualité']
+  ];
+  document.getElementById('trsDetailBody').innerHTML = trsRows.map(r=>`<tr><td><strong>${r[0]}</strong></td><td>${r[1]}%</td><td>${r[2]}%</td><td class="${r[3] >= 0 ? 'ok':'danger'}">${r[3] > 0 ? '+' : ''}${r[3].toFixed(1)} pts</td><td>${r[4]}</td></tr>`).join('');
+  const topEOQ = [...state.articles].sort((a,b)=>b.eoq-a.eoq).slice(0,8);
+  const avgEoq = Math.round(topEOQ.reduce((s,a)=>s+a.eoq,0)/Math.max(topEOQ.length,1));
+  const avgRop = Math.round(topEOQ.reduce((s,a)=>s+a.rop,0)/Math.max(topEOQ.length,1));
+  document.getElementById('eoqExplain').textContent = `Les SKU présentés ont les plus grands EOQ. EOQ moyen du groupe : ${avgEoq} unités. Point de commande moyen : ${avgRop} unités. Cette lecture soutient la politique de réapprovisionnement des articles prioritaires et aide à justifier la taille de lot.`;
   document.getElementById('abceoqBody').innerHTML = state.articles.filter(a=>['A','B'].includes(a.abc)).sort((a,b)=>(a.abc==='A'?0:1)-(b.abc==='A'?0:1) || b.savingPotential-a.savingPotential).slice(0,20).map(a=>`<tr><td>${a.sku}</td><td>${a.article}</td><td>${statusTag(a.abc)}</td><td>${a.eoq}</td><td>${a.rop}</td><td>${a.coverageDays} j</td><td>${a.purchasePolicy}</td><td>${money(a.savingPotential)}</td></tr>`).join('');
 }
 function renderAudit(){
@@ -465,6 +479,8 @@ function drawCharts(){
   charts.stockStatus = new Chart(document.getElementById('stockStatusChart'), { type:'bar', data:{labels:['Conforme','Sous seuil','Rupture'], datasets:[{data:[state.articles.filter(a=>a.serviceStatus==='Conforme').length,state.articles.filter(a=>a.serviceStatus==='Sous seuil').length,state.articles.filter(a=>a.serviceStatus==='Rupture').length], backgroundColor:['#22c55e','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
   const trs = state.trs;
   charts.trs = new Chart(document.getElementById('trsChart'), { type:'bar', data:{ labels:['Disponibilité','Performance','Qualité','TRS global'], datasets:[ {label:'Réel %', data:[trs.availability,trs.performance,trs.quality,trs.trs], backgroundColor:['rgba(96,165,250,.72)','rgba(167,139,250,.72)','rgba(74,222,128,.72)','rgba(251,191,36,.78)'], borderRadius:8 }, {label:'Cible %', data:[90,95,99,85], type:'line', borderColor:'#f87171', borderWidth:2, pointRadius:0, tension:0} ]}, options:{ plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{ x:{ticks:{color:'#93a4c7'}}, y:{min:0,max:100,ticks:{color:'#93a4c7'}} } } });
+  const topEOQ = [...state.articles].sort((a,b)=>b.eoq-a.eoq).slice(0,8);
+  charts.eoq = new Chart(document.getElementById('eoqChart'), { type:'bar', data:{labels:topEOQ.map(a=>a.sku), datasets:[{label:'EOQ', data:topEOQ.map(a=>a.eoq), backgroundColor:'rgba(45,212,191,.72)', borderRadius:8},{label:'ROP', data:topEOQ.map(a=>a.rop), type:'line', borderColor:'#fbbf24', backgroundColor:'#fbbf24', tension:0.25}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
   charts.supplier = new Chart(document.getElementById('supplierChart'), { type:'bar', data:{labels:state.suppliers.map(s=>s.name), datasets:[{label:'Conformité %', data:state.suppliers.map(s=>s.conformityRate), backgroundColor:'rgba(167,139,250,.72)'}]}, options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{min:70,max:100,ticks:{color:'#93a4c7'}}}} });
   drawTransportChart();
 }
