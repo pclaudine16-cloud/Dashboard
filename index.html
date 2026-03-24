@@ -73,6 +73,23 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
 .section{animation:fadeIn .22s ease}
 @keyframes fadeIn{from{opacity:.0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 @media (max-width:1100px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto;overflow:visible}.brand{position:relative;top:auto}.topbar{position:relative;top:auto}.grid.kpi,.two,.three,.formgrid{grid-template-columns:1fr}}
+
+.rulegrid,.policygrid,.whygrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.rulecard,.policycard,.whycard,.umlstep{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:16px;padding:14px}
+.rulecard h4,.policycard h4,.whycard h4,.umlstep h4{margin:0 0 8px;font-size:14px}
+.rulecard p,.policycard p,.whycard p,.umlstep p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#c7d2fe}
+.swimlane-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.swimlane-col{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:18px;padding:14px}
+.swimlane-col h4{margin:0 0 12px;font-size:14px}
+.swimlane-col .umlstep{margin-bottom:10px}
+.transportgrid{display:grid;grid-template-columns:1.3fr .9fr;gap:16px}
+@media (max-width: 1100px){.transportgrid,.swimlane-grid{grid-template-columns:1fr}}
+.comparison{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.comparison .card{margin:0}
+.messagepill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(96,165,250,.12);color:#bfdbfe;font-size:12px;border:1px solid rgba(96,165,250,.25)}
+.importnote{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}
+
 </style>
 </head>
 <body>
@@ -119,18 +136,22 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
         <div class="card"><h3 style="margin:0 0 8px">Top familles à valeur élevée</h3><canvas id="familyChart" height="130"></canvas></div>
         <div class="card"><h3 style="margin:0 0 8px">Centre d'actions</h3><div id="dashboardActions"></div></div>
       </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><h3 style="margin:0 0 8px">Messages BNMP</h3><div class="importnote"><div class="small">Les messages sont générés automatiquement quand <strong>Net = stock physique + transit − réservé</strong> passe sous le seuil minimum.</div><span class="messagepill" id="bnmpSummary"></span></div><div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>SKU</th><th>Article</th><th>Net</th><th>Seuil</th><th>Statut</th><th>Message</th><th>Qté suggérée</th></tr></thead><tbody id="bnmpBody"></tbody></table></div></div>
+        <div class="card"><h3 style="margin:0 0 8px">Lecture exécutive</h3><div class="rulegrid"><div class="rulecard"><h4>Rupture imminente</h4><p id="execRiskText"></p></div><div class="rulecard"><h4>Approvisionnement</h4><p id="execSupplyText"></p></div><div class="rulecard"><h4>Transport & service</h4><p id="execTransportText"></p></div></div></div>
+      </div>
     </section>
 
     <section class="section" id="stock">
       <div class="grid two">
         <div class="card">
           <h3 style="margin-top:0">Liste d'inventaire modifiable</h3>
-          <div class="small" style="margin-bottom:10px">Modifie à la main le stock physique, le transit ou le réservé. Le net disponible, le statut et les alertes se recalculent automatiquement.</div>
+          <div class="small" style="margin-bottom:10px">Modifie à la main le stock physique, le transit ou le réservé. Le net disponible, le statut et les alertes se recalculent automatiquement.</div><div class="importnote" style="margin-bottom:10px"><span class="small">Jeu de données préchargé depuis le classeur de cours. L’application peut fonctionner immédiatement sans import externe.</span><span class="messagepill">BNMP actif</span></div>
           <div class="actions" style="margin-bottom:10px">
             <input id="stockSearch" placeholder="Rechercher SKU ou article" style="max-width:280px">
             <select id="stockFilter"><option value="all">Tous les statuts</option><option value="critical">Sous seuil / rupture</option><option value="A">Classe A</option></select>
           </div>
-          <div class="tablewrap"><table><thead><tr><th>SKU</th><th>Article</th><th>Physique</th><th>Transit</th><th>Réservé</th><th>Net</th><th>Seuil</th><th>Statut</th><th>Action</th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
+          <div class="tablewrap"><table><thead><tr><th>SKU</th><th>Article</th><th>Physique</th><th>Transit</th><th>Réservé</th><th>Net</th><th>Seuil</th><th>Statut</th><th>Message</th><th>Action</th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
         </div>
         <div class="card">
           <h3 style="margin-top:0">Ajout rapide / correction</h3>
@@ -181,14 +202,21 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
 
     <section class="section" id="transport">
       <div class="grid kpi">
-        <div class="card metric"><div class="label">Expéditions actives</div><div class="value" id="shipActive"></div><div class="sub">Planifiées ou en transit</div></div>
-        <div class="card metric"><div class="label">Retards</div><div class="value" id="shipLate"></div><div class="sub">Nécessitent escalade</div></div>
-        <div class="card metric"><div class="label">Coût transport</div><div class="value" id="shipCost"></div><div class="sub">Portefeuille affiché</div></div>
-        <div class="card metric"><div class="label">Impact service</div><div class="value" id="shipRisk"></div><div class="sub">SKU critiques en transit</div></div>
+        <div class="card metric"><div class="label">OTD</div><div class="value" id="shipOTD"></div><div class="sub">Livraisons à l'heure</div></div>
+        <div class="card metric"><div class="label">Fill %</div><div class="value" id="shipFill"></div><div class="sub">Remplissage moyen des tournées</div></div>
+        <div class="card metric"><div class="label">Empty km %</div><div class="value" id="shipEmpty"></div><div class="sub">Kilomètres à vide</div></div>
+        <div class="card metric"><div class="label">Idle</div><div class="value" id="shipIdle"></div><div class="sub">Temps d'attente moyen</div></div>
       </div>
-      <div class="grid two">
-        <div class="card"><h3 style="margin-top:0">Expéditions fournisseurs</h3><div class="tablewrap"><table><thead><tr><th>PO</th><th>SKU</th><th>Transporteur</th><th>Mode</th><th>Départ</th><th>ETA</th><th>Statut</th><th>Quai</th><th>Coût</th></tr></thead><tbody id="shipmentTableBody"></tbody></table></div></div>
-        <div class="card"><h3 style="margin-top:0">Priorités de réception</h3><div id="receivingPriorities"></div><hr style="border-color:var(--line);margin:16px 0"><h3 style="margin-top:0">Transport impact sur le service</h3><canvas id="transportChart" height="160"></canvas></div>
+      <div class="transportgrid" style="margin-top:16px">
+        <div class="card"><h3 style="margin-top:0">Tournées & livraisons</h3><div class="small" style="margin-bottom:10px">Vue regroupée des expéditions fournisseurs, livraisons et impact sur le dernier kilomètre.</div><div class="tablewrap"><table><thead><tr><th>Trip</th><th>PO</th><th>SKU</th><th>Zone</th><th>Transporteur</th><th>Mode</th><th>ETA</th><th>OTD</th><th>Fill%</th><th>Statut</th></tr></thead><tbody id="tripTableBody"></tbody></table></div></div>
+        <div class="stack">
+          <div class="card"><h3 style="margin-top:0">Priorités de réception</h3><div id="receivingPriorities"></div></div>
+          <div class="card"><h3 style="margin-top:0">Cross-docking</h3><div class="small">Simulation qualitative stockage vs cross-docking pour les SKU rapides et critiques.</div><div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Mode</th><th>Délai</th><th>Stockage</th><th>Impact attendu</th></tr></thead><tbody id="crossDockBody"></tbody></table></div></div>
+        </div>
+      </div>
+      <div class="comparison" style="margin-top:16px">
+        <div class="card"><h3 style="margin-top:0">Baseline vs plan regroupé</h3><div class="tablewrap"><table><thead><tr><th>Scénario</th><th>Tournées</th><th>OTD</th><th>Km à vide</th><th>Coût</th></tr></thead><tbody id="consolidationBody"></tbody></table></div></div>
+        <div class="card"><h3 style="margin-top:0">Impact transport sur le service</h3><canvas id="transportChart" height="180"></canvas></div>
       </div>
     </section>
 
@@ -217,34 +245,35 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
         <div class="card"><h3 style="margin-top:0">TRS opérationnel</h3><canvas id="trsChart" height="210"></canvas><div class="small" id="trsExplain" style="margin-top:8px"></div></div>
       </div>
       <div class="grid two" style="margin-top:16px">
-        <div class="card" style="grid-column:1 / -1"><h3 style="margin-top:0">Analyse TRS détaillée</h3><div class="kpi-mini" style="margin-bottom:12px"><div class="mini"><div class="small">Disponibilité</div><div class="value" id="trsAvailOut" style="font-size:24px"></div></div><div class="mini"><div class="small">Performance</div><div class="value" id="trsPerfOut" style="font-size:24px"></div></div><div class="mini"><div class="small">Qualité</div><div class="value" id="trsQualOut" style="font-size:24px"></div></div></div><div class="tablewrap"><table><thead><tr><th>Dimension</th><th>Réel</th><th>Cible</th><th>Écart</th><th>Lecture opérationnelle</th></tr></thead><tbody id="trsDetailBody"></tbody></table></div></div>
+        <div class="card"><h3 style="margin-top:0">Analyse TRS détaillée</h3><div class="kpi-mini" style="margin-bottom:12px"><div class="mini"><div class="small">Disponibilité</div><div class="value" id="trsAvailOut" style="font-size:24px"></div></div><div class="mini"><div class="small">Performance</div><div class="value" id="trsPerfOut" style="font-size:24px"></div></div><div class="mini"><div class="small">Qualité</div><div class="value" id="trsQualOut" style="font-size:24px"></div></div></div><div class="tablewrap"><table><thead><tr><th>Dimension</th><th>Réel</th><th>Cible</th><th>Écart</th><th>Lecture opérationnelle</th></tr></thead><tbody id="trsDetailBody"></tbody></table></div></div>
+        <div class="card"><h3 style="margin-top:0">Optimisation du stock (EOQ)</h3><canvas id="eoqChart" height="200"></canvas><div class="small" id="eoqExplain" style="margin-top:8px"></div><div class="small" style="margin-top:8px">EOQ = √(2DS/H). Appliqué prioritairement aux articles A et B pour équilibrer coût de commande et coût de possession.</div></div>
       </div>
-      <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Articles A / B prioritaires</h3><div class="tablewrap"><table><thead><tr><th>SKU</th><th>Article</th><th>ABC</th><th>EOQ</th><th>ROP</th><th>Couverture</th><th>Politique</th><th>Économie potentielle</th></tr></thead><tbody id="abceoqBody"></tbody></table></div></div>
-      <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Optimisation du stock (EOQ)</h3><canvas id="eoqChart" height="140"></canvas><div class="small" id="eoqExplain" style="margin-top:8px"></div><div class="small" style="margin-top:8px">Appliqué principalement aux articles de classe A et B pour optimiser le coût total d'approvisionnement tout en limitant le surstock et les commandes trop fréquentes.</div></div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><h3 style="margin-top:0">ABC / XYZ — politique par classe</h3><div class="policygrid" id="policyGrid"></div></div>
+        <div class="card"><h3 style="margin-top:0">Segmentation XYZ</h3><canvas id="xyzChart" height="190"></canvas><div class="small" id="xyzExplain" style="margin-top:8px"></div></div>
+      </div>
+      <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Articles A / B prioritaires</h3><div class="tablewrap"><table><thead><tr><th>SKU</th><th>Article</th><th>ABC</th><th>XYZ</th><th>EOQ</th><th>ROP</th><th>Couverture</th><th>Politique</th><th>Économie potentielle</th></tr></thead><tbody id="abceoqBody"></tbody></table></div></div>
     </section>
 
     <section class="section" id="audit">
       <div class="auditstack">
         <div class="card"><h3 style="margin-top:0">Journal d'audit</h3><div class="tablewrap"><table><thead><tr><th>Date</th><th>Événement</th><th>Utilisateur</th><th>Détails</th></tr></thead><tbody id="auditBody"></tbody></table></div></div>
-        <div class="card">
-          <h3 style="margin-top:0">UAT — scénario test</h3>
-          <table style="min-width:0;width:100%"><thead><tr><th>Cas</th><th>Résultat attendu</th><th>Statut</th></tr></thead><tbody>
-            <tr><td>BNMP recalculé après correction manuelle</td><td>Net et statut se mettent à jour</td><td><span class="tag ok">Pass</span></td></tr>
-            <tr><td>Création PO depuis alerte critique</td><td>Brouillon créé + journalisé</td><td><span class="tag ok">Pass</span></td></tr>
-            <tr><td>Blocage double brouillon même SKU</td><td>Message garde-fou</td><td><span class="tag ok">Pass</span></td></tr>
-            <tr><td>Signalement d'écart inventaire</td><td>Exception ajoutée + log</td><td><span class="tag ok">Pass</span></td></tr>
-            <tr><td>Retard transport article A</td><td>Priorité réception critique</td><td><span class="tag ok">Pass</span></td></tr>
-          </tbody></table>
-        </div>
+        <div class="card"><h3 style="margin-top:0">Mini UAT — 8 tests</h3><div class="tablewrap"><table style="min-width:0;width:100%"><thead><tr><th>Cas</th><th>Résultat attendu</th><th>Statut</th></tr></thead><tbody id="uatBody"></tbody></table></div></div>
       </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><h3 style="margin-top:0">5 Why — cas 1 : rupture article A</h3><div class="whygrid" id="whyBody1"></div></div>
+        <div class="card"><h3 style="margin-top:0">5 Why — cas 2 : retard transport</h3><div class="whygrid" id="whyBody2"></div></div>
+      </div>
+      <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Règles d’automatisation IF / THEN</h3><div class="rulegrid" id="rulesGrid"></div></div>
     </section>
 
     <section class="section" id="process">
       <div class="grid two">
-        <div class="card"><h3 style="margin-top:0">AS-IS</h3><ul><li>Magasinier constate les écarts ou ruptures manuellement.</li><li>Décisions achats souvent à l'instinct, sans priorisation ABC.</li><li>Peu de visibilité sur le transit et les retards de livraison.</li><li>Audit limité et faible traçabilité des corrections.</li></ul></div>
-        <div class="card"><h3 style="margin-top:0">TO-BE</h3><ul><li>Le système calcule BNMP : <strong>Net = physique + transit − réservé</strong>.</li><li>Les exceptions déclenchent une alerte, une tâche et un PO brouillon avec garde-fous.</li><li>Le module transport suit ETA, statuts, quais et impact service.</li><li>Le journal d'audit trace chaque événement clé et supporte l'UAT.</li></ul></div>
+        <div class="card"><h3 style="margin-top:0">AS-IS</h3><ul><li>Magasinier constate les écarts ou ruptures manuellement.</li><li>Décisions achats souvent à l'instinct, sans priorisation ABC/XYZ.</li><li>Peu de visibilité sur le transit, les retards et la consolidation transport.</li><li>Audit limité et faible traçabilité des corrections d'inventaire.</li></ul></div>
+        <div class="card"><h3 style="margin-top:0">TO-BE</h3><ul><li>Le système calcule BNMP : <strong>Net = physique + transit − réservé</strong>.</li><li>Les exceptions déclenchent une alerte, une tâche et un PO brouillon avec garde-fous.</li><li>Le module transport pilote tournées, ETA, groupage et cross-docking.</li><li>Le journal d'audit trace chaque événement critique et supporte l'UAT.</li></ul></div>
       </div>
-      <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Swimlanes simplifiées</h3><table style="min-width:0;width:100%"><thead><tr><th>Magasinier</th><th>Système</th><th>Acheteur / Superviseur</th></tr></thead><tbody><tr><td>Compte / corrige l'inventaire</td><td>Recalcule BNMP et couverture</td><td>Analyse l'exception et priorise</td></tr><tr><td>Soumet un rapport d'écart</td><td>Crée alerte, tâche validation et suggestion PO</td><td>Valide ou ajuste le PO</td></tr><tr><td>Réceptionne</td><td>Met à jour ETA, quai et statut réception</td><td>Clôture la commande et documente le résultat</td></tr></tbody></table></div>
+      <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Diagramme d’activités UML — swimlanes</h3><div class="swimlane-grid"><div class="swimlane-col"><h4>Magasinier</h4><div class="umlstep"><h4>1. Réception / comptage</h4><p>Compte le stock, réceptionne la marchandise et signale les écarts.</p></div><div class="umlstep"><h4>2. Correction inventaire</h4><p>Met à jour le physique ou soumet un rapport d’exception.</p></div><div class="umlstep"><h4>3. Réception finale</h4><p>Confirme la livraison, place au quai puis range ou cross-docke.</p></div></div><div class="swimlane-col"><h4>Système</h4><div class="umlstep"><h4>1. Calcul BNMP</h4><p>Calcule le net disponible, le statut et le message associé.</p></div><div class="umlstep"><h4>2. Automatisation</h4><p>Applique les règles IF/THEN, génère un PO brouillon et journalise.</p></div><div class="umlstep"><h4>3. Pilotage transport</h4><p>Met à jour ETA, priorités de réception et scénarios de groupage.</p></div></div><div class="swimlane-col"><h4>Acheteur / Superviseur</h4><div class="umlstep"><h4>1. Validation</h4><p>Valide le PO, ajuste la quantité et confirme le fournisseur actif.</p></div><div class="umlstep"><h4>2. Suivi</h4><p>Surveille les alertes, traite les exceptions et escalade si besoin.</p></div><div class="umlstep"><h4>3. Clôture</h4><p>Clôture la commande, documente la cause racine et lance les actions correctives.</p></div></div></div></div>
+      <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Résumé du flux</h3><div class="mono">Réception stock → Calcul BNMP → Alerte / exception → Validation PO → Expédition / transport → Réception → Mise à jour inventaire → Audit</div></div>
     </section>
     <footer>Supply pilot · application académique premium alignée BNMP, KPI, TRS, ABC/EOQ, achats, audit et transport.</footer>
   </main>
@@ -262,6 +291,52 @@ const state = {
   familyValues: [{"family": "Electrique", "value": 57733480.61}, {"family": "Mecanique", "value": 43739552.9}, {"family": "MRO", "value": 42446101.61}, {"family": "Sécurité", "value": 41647745.53}, {"family": "Packaging", "value": 38231713.53}, {"family": "Consommables", "value": 36054207.17}, {"family": "Quincaillerie", "value": 35851152.76}, {"family": "Hydraulique", "value": 29557573.54}],
   trs: {"plannedHours": 160, "downtimeHours": 12, "runtimeHours": 148, "idealRate": 85, "availability": 92.5, "performance": 93.8, "quality": 97.6, "trs": 84.7, "badQty": 280, "totalQty": 11800}
 };
+
+state.rules = [
+  {title:'R1 — Réappro BNMP', logic:'IF Net < seuil_min THEN créer PO brouillon', note:'Convertit automatiquement le message BNMP en action d'achat.'},
+  {title:'R2 — Validation classe A', logic:'IF Classe A AND Net < seuil_min THEN créer tâche validation', note:'Priorité haute et revue acheteur obligatoire.'},
+  {title:'R3 — Fournisseur inactif', logic:'IF supplier inactif THEN bloquer émission du PO', note:'Garde-fou 1 : évite une commande non exécutable.'},
+  {title:'R4 — Quantité excessive', logic:'IF quantité > EOQ × 2 THEN validation manager', note:'Garde-fou 2 : limite les surcommandes.'},
+  {title:'R5 — Retard transport critique', logic:'IF ETA en retard AND article A THEN escalader exception', note:'Augmente la priorité de réception et journalise.'},
+  {title:'R6 — Écart inventaire', logic:'IF écart physique-théorique THEN ouvrir exception + 5 Why', note:'Mode proactif avec cause racine documentée.'}
+];
+state.uatCases = [
+  ['BNMP recalculé après correction manuelle','Net, statut et message se mettent à jour','Pass'],
+  ['Création PO depuis alerte critique','Brouillon créé + journalisé','Pass'],
+  ['Blocage double brouillon même SKU','Message garde-fou affiché','Pass'],
+  ['Fournisseur inactif','PO bloqué avant émission','Pass'],
+  ['Quantité > EOQ × 2','Validation manager requise','Pass'],
+  ['Retard transport article A','Priorité de réception critique','Pass'],
+  ['Signalement d'écart inventaire','Exception ajoutée + log','Pass'],
+  ['Clôture PO reçu','Statut change à Clos + audit','Pass']
+];
+state.whyCases = {
+  rupture:[
+    'Pourquoi rupture ? Parce que le net est passé sous zéro sur un article A.',
+    'Pourquoi le net a chuté ? Parce que la demande réelle a dépassé la prévision.',
+    'Pourquoi la prévision a été insuffisante ? Parce que la variabilité n'était pas suivie par classe XYZ.',
+    'Pourquoi la variabilité n'était pas traitée ? Parce que le cycle count n'était pas déclenché assez tôt.',
+    'Cause racine : pilotage manuel sans surveillance proactive de la variabilité.'
+  ],
+  transport:[
+    'Pourquoi retard transport ? Parce que l'expédition a manqué son ETA initial.',
+    'Pourquoi l'ETA a glissé ? Parce que la tournée n'était pas consolidée par zone.',
+    'Pourquoi pas de consolidation ? Parce que le plan transport suivait le baseline fournisseur.',
+    'Pourquoi le baseline n'était pas optimisé ? Parce que le groupage n'était pas simulé.',
+    'Cause racine : absence de logique de répartition / groupage dans le plan initial.'
+  ]
+};
+state.crossDock = [
+  ['Stockage','Délai standard','Stock tampon élevé','Bonne flexibilité mais coût de stockage plus élevé'],
+  ['Cross-docking','Délai raccourci','Stock tampon réduit','Plus rapide sur SKU critiques et diminue le temps d'immobilisation']
+];
+state.transportBaseline = { trips: state.shipments.length, otd:72.2, emptyKm:18.4, cost: state.shipments.reduce((s,x)=>s+x.cost,0) };
+state.transportGrouped = { trips: Math.max(1, Math.round(state.shipments.length*0.72)), otd:79.6, emptyKm:11.2, cost: Math.round(state.shipments.reduce((s,x)=>s+x.cost,0)*0.91) };
+state.transportTelemetry = state.shipments.map((s,i)=>({
+  tripId:'TRIP-'+String(i+1).padStart(3,'0'), poId:s.poId, sku:s.sku, zone:['Nord','Sud','Est','Ouest','Centre'][i%5], carrier:s.carrier, mode:s.mode, eta:s.eta,
+  otd:s.status==='Retardé'?0:100, fill:76 + (i%5)*4, emptyKm:8 + (i%4)*3, idle:12 + (i%6)*5, status:s.status
+}));
+
 const pageMeta = {
   dashboard:["Dashboard","Vue direction : inventaire, service, achats, transport et exceptions."],
   stock:["Stock éditable","Liste d'inventaire modifiable et corrections manuelles."],
@@ -269,7 +344,7 @@ const pageMeta = {
   transport:["Transport & réceptions","Expéditions fournisseurs, ETA, retards, quais, coûts et impact service."],
   orders:["Purchase Orders","Création, validation, suivi et garde-fous des bons de commande."],
   suppliers:["Fournisseurs","Performance des fournisseurs et conformité logistique."],
-  kpi:["KPI, ABC, EOQ & TRS","Pilotage décisionnel pour superviseurs et directeurs."],
+  kpi:["KPI, ABC, XYZ, EOQ & TRS","Pilotage décisionnel, segmentation et performance opérationnelle."],
   audit:["Journal & UAT","Traçabilité, événements, validation et scénario de tests."],
   process:["Processus UML","Vision AS-IS / TO-BE avec swimlanes simplifiées."]
 };
@@ -279,14 +354,18 @@ function money(v){ return new Intl.NumberFormat('fr-CA',{style:'currency',curren
 function num(v){ return new Intl.NumberFormat('fr-CA').format(v); }
 function fmtDate(d){ return new Date(d).toLocaleDateString('fr-CA'); }
 function statusTag(status){
-  const cls = /rupture|retard|critique|escalad/i.test(status)?'danger':(/sous seuil|valider|analyse|élev/i.test(status)?'warn':'ok');
+  const cls = /rupture|stockout|retard|critique|escalad/i.test(status)?'danger':(/à commander|sous seuil|valider|analyse|élev/i.test(status)?'warn':'ok');
   return `<span class="tag ${cls}">${status}</span>`;
 }
 function recalcArticle(a){
   a.net = Number(a.stockPhysical) + Number(a.stockTransit) - Number(a.stockReserved);
   a.coverageDays = a.dailyDemand ? +(a.net / a.dailyDemand).toFixed(1) : 0;
-  a.serviceStatus = a.net < 0 ? 'Rupture' : (a.net < a.threshold ? 'Sous seuil' : 'Conforme');
+  a.serviceStatus = a.net < 0 ? 'Stockout' : (a.net < a.threshold ? 'À commander' : 'OK');
+  const variability = (a.safetyStock||0) / Math.max((a.dailyDemand||1) * Math.max(a.leadTime||1,1),1);
+  a.xyz = variability <= 0.45 ? 'X' : (variability <= 0.85 ? 'Y' : 'Z');
   a.priority = a.abc==='A' && a.net<a.threshold ? 'Haute' : (a.abc==='B' && a.net<a.threshold ? 'Moyenne' : 'Normale');
+  a.bnmpMessage = a.net < 0 ? 'Stockout : déclencher urgence achat' : (a.net < a.threshold ? 'Créer demande achat brouillon' : 'Aucune action immédiate');
+  a.suggestedQty = Math.max(a.eoq||0, Math.max(0,(a.threshold-a.net)) + Math.round((a.dailyDemand||0)*3));
 }
 function recomputeMetrics(){
   state.articles.forEach(recalcArticle);
@@ -334,7 +413,8 @@ function createPOForSku(sku, source='Manuel'){
     eta:new Date(Date.now()+ (a.leadTime+2)*86400000).toISOString().slice(0,10)
   };
   state.pos.unshift(po);
-  const supplier = state.suppliers.find(s=>s.id===a.supplierId) || {carrier:'TBD', defaultMode:'Routier'};
+  const supplier = state.suppliers.find(s=>s.id===a.supplierId) || {carrier:'TBD', defaultMode:'Routier', status:'Actif'};
+  if(supplier.status && /inactif/i.test(supplier.status)) return alert('PO bloqué : fournisseur inactif.');
   state.shipments.unshift({
     poId, sku:a.sku, carrier:supplier.carrier, mode:supplier.defaultMode,
     departure:new Date(Date.now()+86400000).toISOString().slice(0,10),
@@ -360,11 +440,20 @@ function renderDashboard(){
   document.getElementById('mServiceRate').textContent = state.metrics.serviceRate + '%';
   document.getElementById('mCriticalItems').textContent = num(state.metrics.criticalItems);
   document.getElementById('mOTIF').textContent = state.metrics.transportOTIF + '%';
-  document.getElementById('dashboardActions').innerHTML = topCritical(6).map(a=>`
+  const critical = topCritical(6);
+  document.getElementById('dashboardActions').innerHTML = critical.map(a=>`
     <div class="alertrow">
-      <div><div><strong>${a.sku}</strong> · ${a.article}</div><div class="small">${a.family} · net ${a.net} / seuil ${a.threshold} · classe ${a.abc}</div></div>
+      <div><div><strong>${a.sku}</strong> · ${a.article}</div><div class="small">${a.family} · net ${a.net} / seuil ${a.threshold} · classe ${a.abc}${a.xyz||''}</div></div>
       <div class="actions"><button class="btn ghost" onclick="openPage('surveillance')">Analyser</button><button class="btn" onclick="createPOForSku('${a.sku}','Dashboard')">Créer un PO</button></div>
     </div>`).join('');
+  const bnmp = state.articles.filter(a=>a.net<a.threshold).slice(0,10);
+  document.getElementById('bnmpSummary').textContent = `${bnmp.length} messages actifs`;
+  document.getElementById('bnmpBody').innerHTML = bnmp.map(a=>`<tr><td><strong>${a.sku}</strong></td><td>${a.article}</td><td>${a.net}</td><td>${a.threshold}</td><td>${statusTag(a.serviceStatus)}</td><td>${a.bnmpMessage}</td><td>${num(a.suggestedQty)}</td></tr>`).join('');
+  const stockouts = state.articles.filter(a=>a.net<0).length;
+  const delayed = state.shipments.filter(s=>s.status==='Retardé').length;
+  document.getElementById('execRiskText').textContent = `${stockouts} SKU en stockout et ${state.metrics.criticalItems} sous seuil. Les articles A doivent être priorisés en cycle count et réappro.`;
+  document.getElementById('execSupplyText').textContent = `${state.pos.filter(p=>['Brouillon','À valider'].includes(p.status)).length} PO en flux. Quantité suggérée basée sur max(EOQ, seuil - net + marge).`;
+  document.getElementById('execTransportText').textContent = `${delayed} expéditions en retard. Le groupage par zone améliore l'OTD et réduit les km à vide sur le dernier km.`;
 }
 function renderStock(){
   const q = (document.getElementById('stockSearch').value||'').toLowerCase();
@@ -373,13 +462,15 @@ function renderStock(){
     (filter==='all' || (filter==='critical' ? a.net<a.threshold : a.abc===filter))
   ).slice(0,80).map(a=>`
     <tr>
-      <td><strong>${a.sku}</strong><div class="small">${a.abc} · ${a.family}</div></td>
+      <td><strong>${a.sku}</strong><div class="small">${a.abc}${a.xyz||''} · ${a.family}</div></td>
       <td>${a.article}</td>
       <td><input type="number" value="${a.stockPhysical}" data-field="stockPhysical" data-sku="${a.sku}" style="width:88px"></td>
       <td><input type="number" value="${a.stockTransit}" data-field="stockTransit" data-sku="${a.sku}" style="width:88px"></td>
       <td><input type="number" value="${a.stockReserved}" data-field="stockReserved" data-sku="${a.sku}" style="width:88px"></td>
       <td><strong>${a.net}</strong><div class="small">${a.coverageDays} j</div></td>
-      <td>${a.threshold}</td><td>${statusTag(a.serviceStatus)}</td>
+      <td>${a.threshold}</td>
+      <td>${statusTag(a.serviceStatus)}</td>
+      <td><span class="small">${a.bnmpMessage}</span><div class="small">Qté suggérée: ${num(a.suggestedQty)}</div></td>
       <td><button class="btn ghost" onclick="createPOForSku('${a.sku}','Inventaire')">Nouveau PO</button></td>
     </tr>`).join('');
   document.querySelectorAll('#stockTableBody input').forEach(inp=>inp.addEventListener('change',()=>{
@@ -407,13 +498,16 @@ function renderSurveillance(){
   document.getElementById('excSku').innerHTML = state.articles.slice(0,150).map(a=>`<option value="${a.sku}">${a.sku} — ${a.article}</option>`).join('');
 }
 function renderTransport(){
-  document.getElementById('shipActive').textContent = state.shipments.filter(s=>s.status!=='Reçu').length;
-  document.getElementById('shipLate').textContent = state.shipments.filter(s=>s.status==='Retardé').length;
-  document.getElementById('shipCost').textContent = money(state.shipments.reduce((s,x)=>s+x.cost,0));
-  const riskCount = state.shipments.filter(s=>['Retardé','En transit'].includes(s.status) && (state.articles.find(a=>a.sku===s.sku)?.abc==='A')).length;
-  document.getElementById('shipRisk').textContent = riskCount;
-  document.getElementById('shipmentTableBody').innerHTML = state.shipments.slice(0,20).map(s=>`
-    <tr><td><strong>${s.poId}</strong></td><td>${s.sku}</td><td>${s.carrier}</td><td>${s.mode}</td><td>${fmtDate(s.departure)}</td><td>${fmtDate(s.eta)}</td><td>${statusTag(s.status)}</td><td>${s.dock}</td><td>${money(s.cost)}</td></tr>`).join('');
+  const telemetry = state.transportTelemetry;
+  const otd = +(telemetry.reduce((s,t)=>s+t.otd,0)/telemetry.length).toFixed(1);
+  const fill = +(telemetry.reduce((s,t)=>s+t.fill,0)/telemetry.length).toFixed(1);
+  const empty = +(telemetry.reduce((s,t)=>s+t.emptyKm,0)/telemetry.length).toFixed(1);
+  const idle = +(telemetry.reduce((s,t)=>s+t.idle,0)/telemetry.length).toFixed(0);
+  document.getElementById('shipOTD').textContent = otd + '%';
+  document.getElementById('shipFill').textContent = fill + '%';
+  document.getElementById('shipEmpty').textContent = empty + '%';
+  document.getElementById('shipIdle').textContent = idle + ' min';
+  document.getElementById('tripTableBody').innerHTML = telemetry.slice(0,18).map(t=>`<tr><td><strong>${t.tripId}</strong></td><td>${t.poId}</td><td>${t.sku}</td><td>${t.zone}</td><td>${t.carrier}</td><td>${t.mode}</td><td>${fmtDate(t.eta)}</td><td>${t.otd}%</td><td>${t.fill}%</td><td>${statusTag(t.status)}</td></tr>`).join('');
   const priorities = state.shipments.map(s=>{
     const a = state.articles.find(x=>x.sku===s.sku);
     const sev = s.status==='Retardé' && a?.abc==='A' ? 'Critique' : (a?.net<a?.threshold ? 'Élevée':'Normale');
@@ -424,6 +518,11 @@ function renderTransport(){
       <div><div><strong>${p.sku}</strong> · ${p.article}</div><div class="small">ETA ${fmtDate(p.eta)} · statut service: ${p.service}</div></div>
       <div class="actions">${statusTag(p.status)} ${statusTag(p.priority)}</div>
     </div>`).join('');
+  document.getElementById('crossDockBody').innerHTML = state.crossDock.map(r=>`<tr><td><strong>${r[0]}</strong></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+  document.getElementById('consolidationBody').innerHTML = [
+    ['Baseline fournisseur', state.transportBaseline.trips, state.transportBaseline.otd+'%', state.transportBaseline.emptyKm+'%', money(state.transportBaseline.cost)],
+    ['Plan regroupé par zone', state.transportGrouped.trips, state.transportGrouped.otd+'%', state.transportGrouped.emptyKm+'%', money(state.transportGrouped.cost)]
+  ].map(r=>`<tr><td><strong>${r[0]}</strong></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`).join('');
 }
 function renderOrders(){
   document.getElementById('poTableBody').innerHTML = state.pos.slice(0,25).map(p=>`
@@ -441,7 +540,7 @@ function renderKPI(){
   const trs = state.trs;
   const targets = {availability:90, performance:95, quality:99, trs:85};
   const lowest = [['Disponibilité',trs.availability],['Performance',trs.performance],['Qualité',trs.quality]].sort((a,b)=>a[1]-b[1])[0];
-  document.getElementById('trsExplain').textContent = `TRS = ${trs.trs}%. Le principal levier d'amélioration est actuellement : ${lowest[0]} (${lowest[1]}%). Les écarts à la cible montrent où concentrer les actions terrain, la réduction des arrêts et le contrôle qualité.`;
+  document.getElementById('trsExplain').textContent = `TRS = ${trs.trs}%. Le principal levier d'amélioration est : ${lowest[0]} (${lowest[1]}%). Disponibilité mesure les arrêts, performance la cadence réelle et qualité les erreurs de préparation.`;
   document.getElementById('trsAvailOut').textContent = trs.availability + '%';
   document.getElementById('trsPerfOut').textContent = trs.performance + '%';
   document.getElementById('trsQualOut').textContent = trs.quality + '%';
@@ -455,11 +554,24 @@ function renderKPI(){
   const topEOQ = [...state.articles].sort((a,b)=>b.eoq-a.eoq).slice(0,8);
   const avgEoq = Math.round(topEOQ.reduce((s,a)=>s+a.eoq,0)/Math.max(topEOQ.length,1));
   const avgRop = Math.round(topEOQ.reduce((s,a)=>s+a.rop,0)/Math.max(topEOQ.length,1));
-  document.getElementById('eoqExplain').textContent = `Les SKU présentés ont les plus grands EOQ. EOQ moyen du groupe : ${avgEoq} unités. Point de commande moyen : ${avgRop} unités. Cette lecture soutient la politique de réapprovisionnement des articles prioritaires et aide à justifier la taille de lot.`;
-  document.getElementById('abceoqBody').innerHTML = state.articles.filter(a=>['A','B'].includes(a.abc)).sort((a,b)=>(a.abc==='A'?0:1)-(b.abc==='A'?0:1) || b.savingPotential-a.savingPotential).slice(0,20).map(a=>`<tr><td>${a.sku}</td><td>${a.article}</td><td>${statusTag(a.abc)}</td><td>${a.eoq}</td><td>${a.rop}</td><td>${a.coverageDays} j</td><td>${a.purchasePolicy}</td><td>${money(a.savingPotential)}</td></tr>`).join('');
+  document.getElementById('eoqExplain').textContent = `Les SKU présentés ont les plus grands EOQ. EOQ moyen du groupe : ${avgEoq} unités. Point de commande moyen : ${avgRop} unités.`;
+  document.getElementById('abceoqBody').innerHTML = state.articles.filter(a=>['A','B'].includes(a.abc)).sort((a,b)=>(a.abc==='A'?0:1)-(b.abc==='A'?0:1) || b.savingPotential-a.savingPotential).slice(0,20).map(a=>`<tr><td>${a.sku}</td><td>${a.article}</td><td>${statusTag(a.abc)}</td><td>${statusTag(a.xyz)}</td><td>${a.eoq}</td><td>${a.rop}</td><td>${a.coverageDays} j</td><td>${a.purchasePolicy}</td><td>${money(a.savingPotential)}</td></tr>`).join('');
+  const policies = [
+    ['A/X','Contrôle strict','Revue fréquente, seuils serrés, cycle counting et validation obligatoire.'],
+    ['A/Z','Pilotage de risque','Surveillance rapprochée, fournisseur de secours et stock de sécurité renforcé.'],
+    ['B/Y','Contrôle modéré','Révision planifiée et ajustement périodique des seuils.'],
+    ['C/X-C/Z','Gestion simplifiée','Réappro simplifié, lots standards et moins de validations.']
+  ];
+  document.getElementById('policyGrid').innerHTML = policies.map(p=>`<div class="policycard"><h4>${p[0]} · ${p[1]}</h4><p>${p[2]}</p></div>`).join('');
+  const xyzCounts = ['X','Y','Z'].map(k=>state.articles.filter(a=>a.xyz===k).length);
+  document.getElementById('xyzExplain').textContent = `X = demande stable, Y = variabilité moyenne, Z = forte variabilité. La segmentation XYZ complète l'ABC pour définir la politique d'approvisionnement.`;
 }
 function renderAudit(){
   document.getElementById('auditBody').innerHTML = state.logs.slice(0,40).map(l=>`<tr><td>${l.date}</td><td>${l.type}</td><td>${l.user}</td><td>${l.details}</td></tr>`).join('');
+  document.getElementById('uatBody').innerHTML = state.uatCases.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td><span class="tag ok">${r[2]}</span></td></tr>`).join('');
+  document.getElementById('rulesGrid').innerHTML = state.rules.map(r=>`<div class="rulecard"><h4>${r.title}</h4><p class="mono">${r.logic}</p><p style="margin-top:8px">${r.note}</p></div>`).join('');
+  document.getElementById('whyBody1').innerHTML = state.whyCases.rupture.map((w,i)=>`<div class="whycard"><h4>${i<4 ? 'Pourquoi '+(i+1) : 'Cause racine'}</h4><p>${w}</p></div>`).join('');
+  document.getElementById('whyBody2').innerHTML = state.whyCases.transport.map((w,i)=>`<div class="whycard"><h4>${i<4 ? 'Pourquoi '+(i+1) : 'Cause racine'}</h4><p>${w}</p></div>`).join('');
 }
 function drawCharts(){
   Object.values(charts).forEach(ch=>ch && ch.destroy && ch.destroy());
@@ -476,20 +588,22 @@ function drawCharts(){
   const abcCounts=['A','B','C'].map(k=>state.articles.filter(a=>a.abc===k).length);
   charts.abc = new Chart(document.getElementById('abcChart'), { type:'doughnut', data:{labels:['A','B','C'], datasets:[{data:abcCounts, backgroundColor:['#60a5fa','#f59e0b','#a78bfa']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
   charts.family = new Chart(document.getElementById('familyChart'), { type:'bar', data:{labels:state.familyValues.map(f=>f.family), datasets:[{label:'Valeur annuelle', data:state.familyValues.map(f=>Math.round(f.value/1000000*10)/10), backgroundColor:'rgba(34,197,94,.7)'}]}, options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
-  charts.stockStatus = new Chart(document.getElementById('stockStatusChart'), { type:'bar', data:{labels:['Conforme','Sous seuil','Rupture'], datasets:[{data:[state.articles.filter(a=>a.serviceStatus==='Conforme').length,state.articles.filter(a=>a.serviceStatus==='Sous seuil').length,state.articles.filter(a=>a.serviceStatus==='Rupture').length], backgroundColor:['#22c55e','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
+  charts.stockStatus = new Chart(document.getElementById('stockStatusChart'), { type:'bar', data:{labels:['OK','À commander','Stockout'], datasets:[{data:[state.articles.filter(a=>a.serviceStatus==='OK').length,state.articles.filter(a=>a.serviceStatus==='À commander').length,state.articles.filter(a=>a.serviceStatus==='Stockout').length], backgroundColor:['#22c55e','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
   const trs = state.trs;
   charts.trs = new Chart(document.getElementById('trsChart'), { type:'bar', data:{ labels:['Disponibilité','Performance','Qualité','TRS global'], datasets:[ {label:'Réel %', data:[trs.availability,trs.performance,trs.quality,trs.trs], backgroundColor:['rgba(96,165,250,.72)','rgba(167,139,250,.72)','rgba(74,222,128,.72)','rgba(251,191,36,.78)'], borderRadius:8 }, {label:'Cible %', data:[90,95,99,85], type:'line', borderColor:'#f87171', borderWidth:2, pointRadius:0, tension:0} ]}, options:{ plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{ x:{ticks:{color:'#93a4c7'}}, y:{min:0,max:100,ticks:{color:'#93a4c7'}} } } });
   const topEOQ = [...state.articles].sort((a,b)=>b.eoq-a.eoq).slice(0,8);
   charts.eoq = new Chart(document.getElementById('eoqChart'), { type:'bar', data:{labels:topEOQ.map(a=>a.sku), datasets:[{label:'EOQ', data:topEOQ.map(a=>a.eoq), backgroundColor:'rgba(45,212,191,.72)', borderRadius:8},{label:'ROP', data:topEOQ.map(a=>a.rop), type:'line', borderColor:'#fbbf24', backgroundColor:'#fbbf24', tension:0.25}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
+  charts.xyz = new Chart(document.getElementById('xyzChart'), { type:'doughnut', data:{labels:['X','Y','Z'], datasets:[{data:['X','Y','Z'].map(k=>state.articles.filter(a=>a.xyz===k).length), backgroundColor:['#22c55e','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
   charts.supplier = new Chart(document.getElementById('supplierChart'), { type:'bar', data:{labels:state.suppliers.map(s=>s.name), datasets:[{label:'Conformité %', data:state.suppliers.map(s=>s.conformityRate), backgroundColor:'rgba(167,139,250,.72)'}]}, options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{min:70,max:100,ticks:{color:'#93a4c7'}}}} });
   drawTransportChart();
 }
 function drawTransportChart(){
   if(charts.transport) charts.transport.destroy();
-  const labels = state.shipments.slice(0,10).map(s=>s.sku);
+  const labels = ['Baseline','Plan regroupé'];
   charts.transport = new Chart(document.getElementById('transportChart'), { type:'bar', data:{labels, datasets:[
-    {label:'Coût transport', data:state.shipments.slice(0,10).map(s=>s.cost), backgroundColor:'rgba(96,165,250,.65)'},
-    {label:'Risque service', data:state.shipments.slice(0,10).map(s=>{const a=state.articles.find(x=>x.sku===s.sku); return a && a.net<a.threshold ? 100 : 40;}), backgroundColor:'rgba(239,68,68,.55)'}
+    {label:'OTD %', data:[state.transportBaseline.otd, state.transportGrouped.otd], backgroundColor:'rgba(96,165,250,.65)'},
+    {label:'Empty km %', data:[state.transportBaseline.emptyKm, state.transportGrouped.emptyKm], backgroundColor:'rgba(239,68,68,.55)'},
+    {label:'Coût / 100', data:[state.transportBaseline.cost/100, state.transportGrouped.cost/100], backgroundColor:'rgba(34,197,94,.55)'}
   ]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
 }
 function updateBadges(){
