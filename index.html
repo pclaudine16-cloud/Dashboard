@@ -126,7 +126,7 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
         <div class="card metric"><div class="label">Valeur inventaire</div><div class="value" id="mInventoryValue"></div><div class="sub">Portefeuille de 400 SKU actifs</div></div>
         <div class="card metric"><div class="label">Taux de service</div><div class="value" id="mServiceRate"></div><div class="sub">SKU avec net ≥ seuil minimum</div></div>
         <div class="card metric"><div class="label">Articles critiques</div><div class="value" id="mCriticalItems"></div><div class="sub">Sous seuil ou rupture</div></div>
-        <div class="card metric"><div class="label">OTIF transport</div><div class="value" id="mOTIF"></div><div class="sub">Expéditions à l'heure et complètes</div></div>
+        <div class="card metric"><div class="label">OTIF transport</div><div class="value" id="mOTIF"></div><div class="sub">Expéditions à l’heure et complètes</div></div>
       </div>
       <div class="grid two">
         <div class="card"><h3 style="margin:0 0 8px">Pareto valeur annuelle</h3><canvas id="paretoChart" height="120"></canvas></div>
@@ -134,7 +134,7 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
       </div>
       <div class="grid two" style="margin-top:16px">
         <div class="card"><h3 style="margin:0 0 8px">Top familles à valeur élevée</h3><canvas id="familyChart" height="130"></canvas></div>
-        <div class="card"><h3 style="margin:0 0 8px">Centre d'actions</h3><div id="dashboardActions"></div></div>
+        <div class="card"><h3 style="margin:0 0 8px">Centre d’actions</h3><div id="dashboardActions"></div></div>
       </div>
       <div class="grid two" style="margin-top:16px">
         <div class="card"><h3 style="margin:0 0 8px">Messages BNMP</h3><div class="importnote"><div class="small">Les messages sont générés automatiquement quand <strong>Net = stock physique + transit − réservé</strong> passe sous le seuil minimum.</div><span class="messagepill" id="bnmpSummary"></span></div><div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>SKU</th><th>Article</th><th>Net</th><th>Seuil</th><th>Statut</th><th>Message</th><th>Qté suggérée</th></tr></thead><tbody id="bnmpBody"></tbody></table></div></div>
@@ -145,7 +145,7 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
     <section class="section" id="stock">
       <div class="grid two">
         <div class="card">
-          <h3 style="margin-top:0">Liste d'inventaire modifiable</h3>
+          <h3 style="margin-top:0">Liste d’inventaire modifiable</h3>
           <div class="small" style="margin-bottom:10px">Modifie à la main le stock physique, le transit ou le réservé. Le net disponible, le statut et les alertes se recalculent automatiquement.</div><div class="importnote" style="margin-bottom:10px"><span class="small">Jeu de données préchargé depuis le classeur de cours. L’application peut fonctionner immédiatement sans import externe.</span><span class="messagepill">BNMP actif</span></div>
           <div class="actions" style="margin-bottom:10px">
             <input id="stockSearch" placeholder="Rechercher SKU ou article" style="max-width:280px">
@@ -179,14 +179,14 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
         <div class="card metric"><div class="label">PO suggérés</div><div class="value" id="suggestedPO"></div><div class="sub">Actions automatiques possibles</div></div>
       </div>
       <div class="grid two">
-        <div class="card"><h3 style="margin-top:0">Centre d'exceptions</h3><div id="exceptionsList"></div></div>
+        <div class="card"><h3 style="margin-top:0">Centre d’exceptions</h3><div id="exceptionsList"></div></div>
         <div class="card">
-          <h3 style="margin-top:0">Formulaire — écart d'inventaire</h3>
+          <h3 style="margin-top:0">Formulaire — écart d’inventaire</h3>
           <div class="formgrid">
             <label>Date / heure<input id="excDate" type="datetime-local"></label>
             <label>SKU<select id="excSku"></select></label>
             <label>Zone / emplacement<input id="excZone" placeholder="Zone A-03"></label>
-            <label>Type d'écart<select id="excType"><option>Manquant</option><option>Surplus</option><option>Erreur de scan</option><option>Dommage</option><option>Mauvais emplacement</option></select></label>
+            <label>Type d’écart<select id="excType"><option>Manquant</option><option>Surplus</option><option>Erreur de scan</option><option>Dommage</option><option>Mauvais emplacement</option></select></label>
             <label>Qté système<input id="excSystemQty" type="number"></label>
             <label>Qté comptée<input id="excCountedQty" type="number"></label>
             <label>Cause probable<select id="excCause"><option>Erreur de prélèvement</option><option>Erreur de réception</option><option>Mouvement non confirmé</option><option>Dommage / rebut</option><option>Écart cyclique</option></select></label>
@@ -202,10 +202,10 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
 
     <section class="section" id="transport">
       <div class="grid kpi">
-        <div class="card metric"><div class="label">OTD</div><div class="value" id="shipOTD"></div><div class="sub">Livraisons à l'heure</div></div>
+        <div class="card metric"><div class="label">OTD</div><div class="value" id="shipOTD"></div><div class="sub">Livraisons à l’heure</div></div>
         <div class="card metric"><div class="label">Fill %</div><div class="value" id="shipFill"></div><div class="sub">Remplissage moyen des tournées</div></div>
         <div class="card metric"><div class="label">Empty km %</div><div class="value" id="shipEmpty"></div><div class="sub">Kilomètres à vide</div></div>
-        <div class="card metric"><div class="label">Idle</div><div class="value" id="shipIdle"></div><div class="sub">Temps d'attente moyen</div></div>
+        <div class="card metric"><div class="label">Idle</div><div class="value" id="shipIdle"></div><div class="sub">Temps d’attente moyen</div></div>
       </div>
       <div class="transportgrid" style="margin-top:16px">
         <div class="card"><h3 style="margin-top:0">Tournées & livraisons</h3><div class="small" style="margin-bottom:10px">Vue regroupée des expéditions fournisseurs, livraisons et impact sur le dernier kilomètre.</div><div class="tablewrap"><table><thead><tr><th>Trip</th><th>PO</th><th>SKU</th><th>Zone</th><th>Transporteur</th><th>Mode</th><th>ETA</th><th>OTD</th><th>Fill%</th><th>Statut</th></tr></thead><tbody id="tripTableBody"></tbody></table></div></div>
@@ -257,7 +257,7 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
 
     <section class="section" id="audit">
       <div class="auditstack">
-        <div class="card"><h3 style="margin-top:0">Journal d'audit</h3><div class="tablewrap"><table><thead><tr><th>Date</th><th>Événement</th><th>Utilisateur</th><th>Détails</th></tr></thead><tbody id="auditBody"></tbody></table></div></div>
+        <div class="card"><h3 style="margin-top:0">Journal d’audit</h3><div class="tablewrap"><table><thead><tr><th>Date</th><th>Événement</th><th>Utilisateur</th><th>Détails</th></tr></thead><tbody id="auditBody"></tbody></table></div></div>
         <div class="card"><h3 style="margin-top:0">Mini UAT — 8 tests</h3><div class="tablewrap"><table style="min-width:0;width:100%"><thead><tr><th>Cas</th><th>Résultat attendu</th><th>Statut</th></tr></thead><tbody id="uatBody"></tbody></table></div></div>
       </div>
       <div class="grid two" style="margin-top:16px">
@@ -269,8 +269,8 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
 
     <section class="section" id="process">
       <div class="grid two">
-        <div class="card"><h3 style="margin-top:0">AS-IS</h3><ul><li>Magasinier constate les écarts ou ruptures manuellement.</li><li>Décisions achats souvent à l'instinct, sans priorisation ABC/XYZ.</li><li>Peu de visibilité sur le transit, les retards et la consolidation transport.</li><li>Audit limité et faible traçabilité des corrections d'inventaire.</li></ul></div>
-        <div class="card"><h3 style="margin-top:0">TO-BE</h3><ul><li>Le système calcule BNMP : <strong>Net = physique + transit − réservé</strong>.</li><li>Les exceptions déclenchent une alerte, une tâche et un PO brouillon avec garde-fous.</li><li>Le module transport pilote tournées, ETA, groupage et cross-docking.</li><li>Le journal d'audit trace chaque événement critique et supporte l'UAT.</li></ul></div>
+        <div class="card"><h3 style="margin-top:0">AS-IS</h3><ul><li>Magasinier constate les écarts ou ruptures manuellement.</li><li>Décisions achats souvent à l’instinct, sans priorisation ABC/XYZ.</li><li>Peu de visibilité sur le transit, les retards et la consolidation transport.</li><li>Audit limité et faible traçabilité des corrections d’inventaire.</li></ul></div>
+        <div class="card"><h3 style="margin-top:0">TO-BE</h3><ul><li>Le système calcule BNMP : <strong>Net = physique + transit − réservé</strong>.</li><li>Les exceptions déclenchent une alerte, une tâche et un PO brouillon avec garde-fous.</li><li>Le module transport pilote tournées, ETA, groupage et cross-docking.</li><li>Le journal d’audit trace chaque événement critique et supporte l’UAT.</li></ul></div>
       </div>
       <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Diagramme d’activités UML — swimlanes</h3><div class="swimlane-grid"><div class="swimlane-col"><h4>Magasinier</h4><div class="umlstep"><h4>1. Réception / comptage</h4><p>Compte le stock, réceptionne la marchandise et signale les écarts.</p></div><div class="umlstep"><h4>2. Correction inventaire</h4><p>Met à jour le physique ou soumet un rapport d’exception.</p></div><div class="umlstep"><h4>3. Réception finale</h4><p>Confirme la livraison, place au quai puis range ou cross-docke.</p></div></div><div class="swimlane-col"><h4>Système</h4><div class="umlstep"><h4>1. Calcul BNMP</h4><p>Calcule le net disponible, le statut et le message associé.</p></div><div class="umlstep"><h4>2. Automatisation</h4><p>Applique les règles IF/THEN, génère un PO brouillon et journalise.</p></div><div class="umlstep"><h4>3. Pilotage transport</h4><p>Met à jour ETA, priorités de réception et scénarios de groupage.</p></div></div><div class="swimlane-col"><h4>Acheteur / Superviseur</h4><div class="umlstep"><h4>1. Validation</h4><p>Valide le PO, ajuste la quantité et confirme le fournisseur actif.</p></div><div class="umlstep"><h4>2. Suivi</h4><p>Surveille les alertes, traite les exceptions et escalade si besoin.</p></div><div class="umlstep"><h4>3. Clôture</h4><p>Clôture la commande, documente la cause racine et lance les actions correctives.</p></div></div></div></div>
       <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Résumé du flux</h3><div class="mono">Réception stock → Calcul BNMP → Alerte / exception → Validation PO → Expédition / transport → Réception → Mise à jour inventaire → Audit</div></div>
@@ -293,7 +293,7 @@ const state = {
 };
 
 state.rules = [
-  {title:'R1 — Réappro BNMP', logic:'IF Net < seuil_min THEN créer PO brouillon', note:'Convertit automatiquement le message BNMP en action d'achat.'},
+  {title:'R1 — Réappro BNMP', logic:'IF Net < seuil_min THEN créer PO brouillon', note:'Convertit automatiquement le message BNMP en action d’achat.'},
   {title:'R2 — Validation classe A', logic:'IF Classe A AND Net < seuil_min THEN créer tâche validation', note:'Priorité haute et revue acheteur obligatoire.'},
   {title:'R3 — Fournisseur inactif', logic:'IF supplier inactif THEN bloquer émission du PO', note:'Garde-fou 1 : évite une commande non exécutable.'},
   {title:'R4 — Quantité excessive', logic:'IF quantité > EOQ × 2 THEN validation manager', note:'Garde-fou 2 : limite les surcommandes.'},
@@ -307,28 +307,28 @@ state.uatCases = [
   ['Fournisseur inactif','PO bloqué avant émission','Pass'],
   ['Quantité > EOQ × 2','Validation manager requise','Pass'],
   ['Retard transport article A','Priorité de réception critique','Pass'],
-  ['Signalement d'écart inventaire','Exception ajoutée + log','Pass'],
+  ['Signalement d’écart inventaire','Exception ajoutée + log','Pass'],
   ['Clôture PO reçu','Statut change à Clos + audit','Pass']
 ];
 state.whyCases = {
   rupture:[
     'Pourquoi rupture ? Parce que le net est passé sous zéro sur un article A.',
     'Pourquoi le net a chuté ? Parce que la demande réelle a dépassé la prévision.',
-    'Pourquoi la prévision a été insuffisante ? Parce que la variabilité n'était pas suivie par classe XYZ.',
-    'Pourquoi la variabilité n'était pas traitée ? Parce que le cycle count n'était pas déclenché assez tôt.',
+    'Pourquoi la prévision a été insuffisante ? Parce que la variabilité n’était pas suivie par classe XYZ.',
+    'Pourquoi la variabilité n’était pas traitée ? Parce que le cycle count n’était pas déclenché assez tôt.',
     'Cause racine : pilotage manuel sans surveillance proactive de la variabilité.'
   ],
   transport:[
-    'Pourquoi retard transport ? Parce que l'expédition a manqué son ETA initial.',
-    'Pourquoi l'ETA a glissé ? Parce que la tournée n'était pas consolidée par zone.',
+    'Pourquoi retard transport ? Parce que l’expédition a manqué son ETA initial.',
+    'Pourquoi l’ETA a glissé ? Parce que la tournée n’était pas consolidée par zone.',
     'Pourquoi pas de consolidation ? Parce que le plan transport suivait le baseline fournisseur.',
-    'Pourquoi le baseline n'était pas optimisé ? Parce que le groupage n'était pas simulé.',
+    'Pourquoi le baseline n’était pas optimisé ? Parce que le groupage n’était pas simulé.',
     'Cause racine : absence de logique de répartition / groupage dans le plan initial.'
   ]
 };
 state.crossDock = [
   ['Stockage','Délai standard','Stock tampon élevé','Bonne flexibilité mais coût de stockage plus élevé'],
-  ['Cross-docking','Délai raccourci','Stock tampon réduit','Plus rapide sur SKU critiques et diminue le temps d'immobilisation']
+  ['Cross-docking','Délai raccourci','Stock tampon réduit','Plus rapide sur SKU critiques et diminue le temps d’immobilisation']
 ];
 state.transportBaseline = { trips: state.shipments.length, otd:72.2, emptyKm:18.4, cost: state.shipments.reduce((s,x)=>s+x.cost,0) };
 state.transportGrouped = { trips: Math.max(1, Math.round(state.shipments.length*0.72)), otd:79.6, emptyKm:11.2, cost: Math.round(state.shipments.reduce((s,x)=>s+x.cost,0)*0.91) };
@@ -339,8 +339,8 @@ state.transportTelemetry = state.shipments.map((s,i)=>({
 
 const pageMeta = {
   dashboard:["Dashboard","Vue direction : inventaire, service, achats, transport et exceptions."],
-  stock:["Stock éditable","Liste d'inventaire modifiable et corrections manuelles."],
-  surveillance:["Surveillance & alertes","Monitoring, écarts d'inventaire, santé du stock et actions correctives."],
+  stock:["Stock éditable","Liste d’inventaire modifiable et corrections manuelles."],
+  surveillance:["Surveillance & alertes","Monitoring, écarts d’inventaire, santé du stock et actions correctives."],
   transport:["Transport & réceptions","Expéditions fournisseurs, ETA, retards, quais, coûts et impact service."],
   orders:["Purchase Orders","Création, validation, suivi et garde-fous des bons de commande."],
   suppliers:["Fournisseurs","Performance des fournisseurs et conformité logistique."],
@@ -453,7 +453,7 @@ function renderDashboard(){
   const delayed = state.shipments.filter(s=>s.status==='Retardé').length;
   document.getElementById('execRiskText').textContent = `${stockouts} SKU en stockout et ${state.metrics.criticalItems} sous seuil. Les articles A doivent être priorisés en cycle count et réappro.`;
   document.getElementById('execSupplyText').textContent = `${state.pos.filter(p=>['Brouillon','À valider'].includes(p.status)).length} PO en flux. Quantité suggérée basée sur max(EOQ, seuil - net + marge).`;
-  document.getElementById('execTransportText').textContent = `${delayed} expéditions en retard. Le groupage par zone améliore l'OTD et réduit les km à vide sur le dernier km.`;
+  document.getElementById('execTransportText').textContent = `${delayed} expéditions en retard. Le groupage par zone améliore l’OTD et réduit les km à vide sur le dernier km.`;
 }
 function renderStock(){
   const q = (document.getElementById('stockSearch').value||'').toLowerCase();
@@ -540,7 +540,7 @@ function renderKPI(){
   const trs = state.trs;
   const targets = {availability:90, performance:95, quality:99, trs:85};
   const lowest = [['Disponibilité',trs.availability],['Performance',trs.performance],['Qualité',trs.quality]].sort((a,b)=>a[1]-b[1])[0];
-  document.getElementById('trsExplain').textContent = `TRS = ${trs.trs}%. Le principal levier d'amélioration est : ${lowest[0]} (${lowest[1]}%). Disponibilité mesure les arrêts, performance la cadence réelle et qualité les erreurs de préparation.`;
+  document.getElementById('trsExplain').textContent = `TRS = ${trs.trs}%. Le principal levier d’amélioration est : ${lowest[0]} (${lowest[1]}%). Disponibilité mesure les arrêts, performance la cadence réelle et qualité les erreurs de préparation.`;
   document.getElementById('trsAvailOut').textContent = trs.availability + '%';
   document.getElementById('trsPerfOut').textContent = trs.performance + '%';
   document.getElementById('trsQualOut').textContent = trs.quality + '%';
@@ -564,7 +564,7 @@ function renderKPI(){
   ];
   document.getElementById('policyGrid').innerHTML = policies.map(p=>`<div class="policycard"><h4>${p[0]} · ${p[1]}</h4><p>${p[2]}</p></div>`).join('');
   const xyzCounts = ['X','Y','Z'].map(k=>state.articles.filter(a=>a.xyz===k).length);
-  document.getElementById('xyzExplain').textContent = `X = demande stable, Y = variabilité moyenne, Z = forte variabilité. La segmentation XYZ complète l'ABC pour définir la politique d'approvisionnement.`;
+  document.getElementById('xyzExplain').textContent = `X = demande stable, Y = variabilité moyenne, Z = forte variabilité. La segmentation XYZ complète l’ABC pour définir la politique d’approvisionnement.`;
 }
 function renderAudit(){
   document.getElementById('auditBody').innerHTML = state.logs.slice(0,40).map(l=>`<tr><td>${l.date}</td><td>${l.type}</td><td>${l.user}</td><td>${l.details}</td></tr>`).join('');
@@ -638,13 +638,13 @@ document.getElementById('submitExceptionBtn').addEventListener('click', ()=>{
     state.logs.unshift({date:new Date().toLocaleString('fr-CA'), type:'STOCK_CORRECTED', user:'magasinier', details:`${sku} · correction appliquée au stock physique`});
   }
   renderAll();
-  alert("Rapport d'écart soumis.");
+  alert("Rapport d’écart soumis.");
 });
 document.getElementById('createPoFromFormBtn').addEventListener('click', ()=>createPOForSku(document.getElementById('excSku').value,'Surveillance Formulaire'));
 document.getElementById('addStockBtn').addEventListener('click', ()=>{
   const sku=document.getElementById('fSku').value.trim(); if(!sku) return alert('SKU requis');
   const art={ id:state.articles.length+1, sku, article:document.getElementById('fArticle').value||'Nouvel article', family:document.getElementById('fFamily').value||'MRO', annualDemand:5000, unitCost:50, leadTime:7, safetyStock:100, holdingRate:20, orderCost:40, annualValue:250000, annualHolding:10, eoq:120, ordersPerYear:18, cycleDays:20, rop:200, abc:document.getElementById('fABC').value, purchasePolicy:'Revue hebdomadaire', savingPct:8, savingPotential:1500, threshold:Number(document.getElementById('fThreshold').value||100), dailyDemand:20, supplierId:'SUP-01', supplierName:'Nordex Industriel', stockPhysical:Number(document.getElementById('fPhys').value||0), stockTransit:Number(document.getElementById('fTransit').value||0), stockReserved:Number(document.getElementById('fReserved').value||0) };
-  recalcArticle(art); state.articles.unshift(art); state.logs.unshift({date:new Date().toLocaleString('fr-CA'), type:'SKU_CREATED', user:'superviseur', details:`${sku} ajouté à la liste d'inventaire`});
+  recalcArticle(art); state.articles.unshift(art); state.logs.unshift({date:new Date().toLocaleString('fr-CA'), type:'SKU_CREATED', user:'superviseur', details:`${sku} ajouté à la liste d’inventaire`});
   renderAll(); alert('Article ajouté.');
 });
 document.getElementById('excDate').value = new Date().toISOString().slice(0,16);
