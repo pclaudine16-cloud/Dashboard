@@ -33,6 +33,8 @@ button, input, select, textarea{font:inherit}
 .btn.ghost{background:rgba(255,255,255,.02);color:var(--text);border:1px solid var(--line);box-shadow:none}
 .btn.warn{background:linear-gradient(135deg,#fbbf24,var(--warn))}
 .btn.green{background:linear-gradient(135deg,#4ade80,var(--accent2))}
+.btn.danger{background:linear-gradient(135deg,#fb7185,var(--danger));color:white;box-shadow:0 10px 24px rgba(239,68,68,.24)}
+.btn.danger:hover{box-shadow:0 14px 28px rgba(239,68,68,.3)}
 .grid{display:grid;gap:16px}
 .grid.kpi{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px}
 .card{background:linear-gradient(180deg,rgba(18,26,43,.96),rgba(15,22,37,.92));border:1px solid rgba(148,163,184,.12);border-radius:20px;padding:16px;box-shadow:0 12px 30px rgba(0,0,0,.18);transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease}
@@ -67,6 +69,9 @@ textarea{min-height:88px;resize:vertical}
 .hero{padding:18px;background:radial-gradient(circle at top right, rgba(167,139,250,.14), transparent 25%),linear-gradient(135deg,rgba(96,165,250,.16),rgba(167,139,250,.10));border:1px solid rgba(96,165,250,.22);border-radius:18px;margin-bottom:16px;box-shadow:0 12px 28px rgba(37,99,235,.12)}
 .hero strong{font-size:14px}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions.equal .btn{min-width:164px;display:inline-flex;justify-content:center;align-items:center}
+.livechip{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--text);font-weight:700}
+.livechip .small{color:#bfdbfe}
 .kpi-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .kpi-mini .mini{padding:12px;border-radius:14px;background:#0d1528;border:1px solid var(--line)}
 footer{margin-top:20px;color:var(--muted);font-size:12px}
@@ -89,6 +94,25 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
 .comparison .card{margin:0}
 .messagepill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(96,165,250,.12);color:#bfdbfe;font-size:12px;border:1px solid rgba(96,165,250,.25)}
 .importnote{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}
+.card canvas{width:100% !important;max-height:180px !important}
+.chart-tall canvas{max-height:210px !important}
+.chart-mini canvas{max-height:150px !important}
+
+
+.cardhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.cardhead h3{margin:0}
+.headtools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn.csv{background:rgba(59,130,246,.10);border:1px solid rgba(59,130,246,.55);color:#8cbcff}
+.btn.csv:hover{background:rgba(59,130,246,.18)}
+.brand p{letter-spacing:.02em}
+.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.topsearch{display:flex;align-items:center;gap:8px;min-width:260px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.03);color:var(--muted)}
+.topsearch input{background:transparent;border:0;outline:0;color:var(--text);width:100%}
+.topsearch span{opacity:.85}
+canvas{max-height:260px !important}
+#kpi canvas{max-height:220px !important}
+#dashboard canvas{max-height:210px !important}
+#process .umlgrid{margin-top:8px}
 
 </style>
 </head>
@@ -97,7 +121,7 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
   <aside class="sidebar">
     <div class="brand">
       <div class="logo">SP</div>
-      <div><h1>Supply pilot</h1><p>Suite premium inventaire, achats et transport</p></div>
+      <div><h1>SupplyPilot</h1><p>v3.0 · SIAG</p></div>
     </div>
     <button class="navbtn active" data-page="dashboard"><span>⊞ Dashboard</span><span class="badge">Live</span></button>
     <button class="navbtn" data-page="stock"><span>✏️ Stock éditable</span><span class="badge">CRUD</span></button>
@@ -116,8 +140,11 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
         <p id="pageSubtitle">Vue direction : inventaire, service, achats, transport et exceptions.</p>
       </div>
       <div class="toolbar">
+        <label class="topsearch"><span>🔎</span><input id="globalSearch" placeholder="Rechercher"></label>
+        <div class="livechip"><span>📅</span><span id="liveDateText"></span></div>
+        <button class="btn csv" id="topCsvBtn">↓ CSV</button>
         <button class="btn" id="quickPoBtn">+ Nouveau PO</button>
-        <button class="btn ghost" onclick="openPage('surveillance')">Voir alertes</button>
+        <button class="btn danger" onclick="openPage('surveillance')">Voir alertes</button>
       </div>
     </div>
 
@@ -130,7 +157,7 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
       </div>
       <div class="grid two">
         <div class="card"><h3 style="margin:0 0 8px">Pareto valeur annuelle</h3><canvas id="paretoChart" height="120"></canvas></div>
-        <div class="card"><h3 style="margin:0 0 8px">Répartition ABC</h3><canvas id="abcChart" height="200"></canvas></div>
+        <div class="card"><h3 style="margin:0 0 8px">Répartition ABC</h3><canvas id="abcChart" height="165"></canvas></div>
       </div>
       <div class="grid two" style="margin-top:16px">
         <div class="card"><h3 style="margin:0 0 8px">Top familles à valeur élevée</h3><canvas id="familyChart" height="130"></canvas></div>
@@ -145,7 +172,7 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
     <section class="section" id="stock">
       <div class="grid two">
         <div class="card">
-          <h3 style="margin-top:0">Liste d’inventaire modifiable</h3>
+          <div class="cardhead"><h3>Liste d’inventaire modifiable</h3><div class="headtools"><button class="btn csv" id="stockCsvBtn">↓ CSV</button></div></div>
           <div class="small" style="margin-bottom:10px">Modifie à la main le stock physique, le transit ou le réservé. Le net disponible, le statut et les alertes se recalculent automatiquement.</div><div class="importnote" style="margin-bottom:10px"><span class="small">Jeu de données préchargé depuis le classeur de cours. L’application peut fonctionner immédiatement sans import externe.</span><span class="messagepill">BNMP actif</span></div>
           <div class="actions" style="margin-bottom:10px">
             <input id="stockSearch" placeholder="Rechercher SKU ou article" style="max-width:280px">
@@ -169,6 +196,10 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
           </div>
         </div>
       </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><h3 style="margin-top:0">Synthèse des statuts inventaire</h3><canvas id="stockSummaryChart" height="155"></canvas></div>
+        <div class="card"><h3 style="margin-top:0">Top 10 SKU critiques</h3><canvas id="stockCriticalChart" height="155"></canvas></div>
+      </div>
     </section>
 
     <section class="section" id="surveillance">
@@ -178,8 +209,12 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
         <div class="card metric"><div class="label">Santé du stock</div><div class="value" id="stockHealth"></div><div class="sub">Score composite inventaire</div></div>
         <div class="card metric"><div class="label">PO suggérés</div><div class="value" id="suggestedPO"></div><div class="sub">Actions automatiques possibles</div></div>
       </div>
+      <div class="grid two" style="margin-bottom:16px">
+        <div class="card"><h3 style="margin-top:0">Exceptions par sévérité</h3><canvas id="severityChart" height="155"></canvas></div>
+        <div class="card"><h3 style="margin-top:0">Exceptions par catégorie</h3><canvas id="exceptionTypeChart" height="155"></canvas></div>
+      </div>
       <div class="grid two">
-        <div class="card"><h3 style="margin-top:0">Centre d’exceptions</h3><div id="exceptionsList"></div></div>
+        <div class="card"><div class="cardhead"><h3>Centre d’exceptions</h3><div class="headtools"><button class="btn csv" id="survCsvBtn">↓ CSV</button></div></div><div id="exceptionsList"></div></div>
         <div class="card">
           <h3 style="margin-top:0">Formulaire — écart d’inventaire</h3>
           <div class="formgrid">
@@ -195,7 +230,7 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
           <label style="margin-top:12px">Action immédiate<textarea id="excAction" placeholder="Ex.: bloquer emplacement, lancer comptage, créer PO, prévenir superviseur"></textarea></label>
           <label>Commentaires<textarea id="excComments" placeholder="Ajouter le contexte et les constats"></textarea></label>
           <div class="actions"><label style="flex-direction:row;align-items:center;gap:8px;color:var(--text)"><input type="checkbox" id="applyCorrection"> Appliquer la correction au stock physique</label></div>
-          <div class="actions" style="margin-top:12px"><button class="btn warn" id="submitExceptionBtn">Soumettre le rapport</button><button class="btn" id="createPoFromFormBtn">Créer PO brouillon</button></div>
+          <div class="actions equal" style="margin-top:12px"><button class="btn warn" id="submitExceptionBtn">Soumettre le rapport</button><button class="btn" id="createPoFromFormBtn">Créer PO brouillon</button></div>
         </div>
       </div>
     </section>
@@ -208,21 +243,21 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
         <div class="card metric"><div class="label">Idle</div><div class="value" id="shipIdle"></div><div class="sub">Temps d’attente moyen</div></div>
       </div>
       <div class="transportgrid" style="margin-top:16px">
-        <div class="card"><h3 style="margin-top:0">Tournées & livraisons</h3><div class="small" style="margin-bottom:10px">Vue regroupée des expéditions fournisseurs, livraisons et impact sur le dernier kilomètre.</div><div class="tablewrap"><table><thead><tr><th>Trip</th><th>PO</th><th>SKU</th><th>Zone</th><th>Transporteur</th><th>Mode</th><th>ETA</th><th>OTD</th><th>Fill%</th><th>Statut</th></tr></thead><tbody id="tripTableBody"></tbody></table></div></div>
+        <div class="card"><div class="cardhead"><h3>Tournées & livraisons</h3><div class="headtools"><button class="btn csv" id="transportCsvBtn">↓ CSV</button></div></div><div class="small" style="margin-bottom:10px">Vue regroupée des expéditions fournisseurs, livraisons et impact sur le dernier kilomètre.</div><div class="tablewrap"><table><thead><tr><th>Trip</th><th>PO</th><th>SKU</th><th>Zone</th><th>Transporteur</th><th>Mode</th><th>ETA</th><th>OTD</th><th>Fill%</th><th>Statut</th></tr></thead><tbody id="tripTableBody"></tbody></table></div></div>
         <div class="stack">
           <div class="card"><h3 style="margin-top:0">Priorités de réception</h3><div id="receivingPriorities"></div></div>
           <div class="card"><h3 style="margin-top:0">Cross-docking</h3><div class="small">Simulation qualitative stockage vs cross-docking pour les SKU rapides et critiques.</div><div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Mode</th><th>Délai</th><th>Stockage</th><th>Impact attendu</th></tr></thead><tbody id="crossDockBody"></tbody></table></div></div>
         </div>
       </div>
-      <div class="comparison" style="margin-top:16px">
-        <div class="card"><h3 style="margin-top:0">Baseline vs plan regroupé</h3><div class="tablewrap"><table><thead><tr><th>Scénario</th><th>Tournées</th><th>OTD</th><th>Km à vide</th><th>Coût</th></tr></thead><tbody id="consolidationBody"></tbody></table></div></div>
-        <div class="card"><h3 style="margin-top:0">Impact transport sur le service</h3><canvas id="transportChart" height="180"></canvas></div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><h3 style="margin-top:0">Statut des expéditions</h3><canvas id="transportStatusChart" height="155"></canvas></div>
+        <div class="card"><h3 style="margin-top:0">Performance par zone</h3><canvas id="transportZoneChart" height="155"></canvas></div>
       </div>
     </section>
 
     <section class="section" id="orders">
       <div class="stack">
-        <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin-top:0">Workflow PO</h3><button class="btn" id="ordersNewPoBtn">+ Nouveau PO</button></div><div class="tablewrap"><table><thead><tr><th>PO</th><th>SKU</th><th>Qté</th><th>Fournisseur</th><th>Date</th><th>Statut</th><th>Garde-fou</th><th>Action</th></tr></thead><tbody id="poTableBody"></tbody></table></div></div>
+        <div class="card"><div class="cardhead"><h3>Workflow PO</h3><div class="headtools"><button class="btn csv" id="ordersCsvBtn">↓ CSV</button><button class="btn" id="ordersNewPoBtn">+ Nouveau PO</button></div></div><div class="tablewrap"><table><thead><tr><th>PO</th><th>SKU</th><th>Qté</th><th>Fournisseur</th><th>Date</th><th>Statut</th><th>Garde-fou</th><th>Action</th></tr></thead><tbody id="poTableBody"></tbody></table></div></div>
         <div class="card orders-form">
           <h3 style="margin-top:0">Créer un PO brouillon</h3>
           <div class="formgrid"><label>SKU<select id="poSku"></select></label><label>Quantité<input type="number" id="poQty"></label><label>Fournisseur<select id="poSupplier"></select></label><label>Priorité<select id="poPriority"><option>Critique</option><option>Élevée</option><option>Normale</option></select></label></div>
@@ -230,35 +265,49 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
           <div class="small" style="margin-top:10px">Garde-fous : 1 seul brouillon par SKU, alerte si quantité > EOQ × 2 sans validation.</div>
         </div>
       </div>
+    
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><h3 style="margin-top:0">Répartition des PO par statut</h3><canvas id="poStatusChart" height="155"></canvas></div>
+        <div class="card"><h3 style="margin-top:0">PO par fournisseur</h3><canvas id="poSupplierChart" height="155"></canvas></div>
+      </div>
     </section>
 
     <section class="section" id="suppliers">
       <div class="supplierstack">
-        <div class="card"><h3 style="margin-top:0">Base fournisseurs</h3><div class="tablewrap"><table><thead><tr><th>ID</th><th>Nom</th><th>Famille</th><th>Délai moyen</th><th>Statut</th><th>Taux conformité</th><th>Transporteur</th></tr></thead><tbody id="suppliersBody"></tbody></table></div></div>
+        <div class="card"><div class="cardhead"><h3>Base fournisseurs</h3><div class="headtools"><button class="btn csv" id="supplierCsvBtn">↓ CSV</button></div></div><div class="tablewrap"><table><thead><tr><th>ID</th><th>Nom</th><th>Famille</th><th>Délai moyen</th><th>Statut</th><th>Taux conformité</th><th>Transporteur</th></tr></thead><tbody id="suppliersBody"></tbody></table></div></div>
         <div class="card"><h3 style="margin-top:0">Performance fournisseur</h3><canvas id="supplierChart" height="120"></canvas><div class="small" style="margin-top:10px">Lecture : conformité fournisseur, stabilité de délai et capacité à soutenir le taux de service interne.</div></div>
+      </div>
+    
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><h3 style="margin-top:0">Lead time fournisseur</h3><canvas id="supplierLeadChart" height="150"></canvas></div>
+        <div class="card"><h3 style="margin-top:0">Portefeuille fournisseurs</h3><canvas id="supplierStatusChart" height="150"></canvas></div>
       </div>
     </section>
 
     <section class="section" id="kpi">
       <div class="grid kpiwide">
-        <div class="card"><h3 style="margin-top:0">KPI stock & optimisation</h3><canvas id="stockStatusChart" height="190"></canvas><div class="small" style="margin-top:8px">Couverture moyenne : <strong id="avgCoverageOut"></strong> jours · EOQ moyen : <strong id="avgEOQOut"></strong></div></div>
-        <div class="card"><h3 style="margin-top:0">TRS opérationnel</h3><canvas id="trsChart" height="210"></canvas><div class="small" id="trsExplain" style="margin-top:8px"></div></div>
+        <div class="card"><h3 style="margin-top:0">KPI stock & optimisation</h3><canvas id="stockStatusChart" height="165"></canvas><div class="small" style="margin-top:8px">Couverture moyenne : <strong id="avgCoverageOut"></strong> jours · EOQ moyen : <strong id="avgEOQOut"></strong></div></div>
+        <div class="card"><h3 style="margin-top:0">TRS opérationnel</h3><canvas id="trsChart" height="175"></canvas><div class="small" id="trsExplain" style="margin-top:8px"></div></div>
       </div>
       <div class="grid two" style="margin-top:16px">
         <div class="card"><h3 style="margin-top:0">Analyse TRS détaillée</h3><div class="kpi-mini" style="margin-bottom:12px"><div class="mini"><div class="small">Disponibilité</div><div class="value" id="trsAvailOut" style="font-size:24px"></div></div><div class="mini"><div class="small">Performance</div><div class="value" id="trsPerfOut" style="font-size:24px"></div></div><div class="mini"><div class="small">Qualité</div><div class="value" id="trsQualOut" style="font-size:24px"></div></div></div><div class="tablewrap"><table><thead><tr><th>Dimension</th><th>Réel</th><th>Cible</th><th>Écart</th><th>Lecture opérationnelle</th></tr></thead><tbody id="trsDetailBody"></tbody></table></div></div>
-        <div class="card"><h3 style="margin-top:0">Optimisation du stock (EOQ)</h3><canvas id="eoqChart" height="200"></canvas><div class="small" id="eoqExplain" style="margin-top:8px"></div><div class="small" style="margin-top:8px">EOQ = √(2DS/H). Appliqué prioritairement aux articles A et B pour équilibrer coût de commande et coût de possession.</div></div>
+        <div class="card"><h3 style="margin-top:0">Optimisation du stock (EOQ)</h3><canvas id="eoqChart" height="165"></canvas><div class="small" id="eoqExplain" style="margin-top:8px"></div><div class="small" style="margin-top:8px">EOQ = √(2DS/H). Appliqué prioritairement aux articles A et B pour équilibrer coût de commande et coût de possession.</div></div>
       </div>
       <div class="grid two" style="margin-top:16px">
         <div class="card"><h3 style="margin-top:0">ABC / XYZ — politique par classe</h3><div class="policygrid" id="policyGrid"></div></div>
-        <div class="card"><h3 style="margin-top:0">Segmentation XYZ</h3><canvas id="xyzChart" height="190"></canvas><div class="small" id="xyzExplain" style="margin-top:8px"></div></div>
+        <div class="card"><h3 style="margin-top:0">Segmentation XYZ</h3><canvas id="xyzChart" height="165"></canvas><div class="small" id="xyzExplain" style="margin-top:8px"></div></div>
       </div>
-      <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Articles A / B prioritaires</h3><div class="tablewrap"><table><thead><tr><th>SKU</th><th>Article</th><th>ABC</th><th>XYZ</th><th>EOQ</th><th>ROP</th><th>Couverture</th><th>Politique</th><th>Économie potentielle</th></tr></thead><tbody id="abceoqBody"></tbody></table></div></div>
+      <div class="card" style="margin-top:16px"><div class="cardhead"><h3>Articles A / B prioritaires</h3><div class="headtools"><button class="btn csv" id="abceoqCsvBtn">↓ CSV</button></div></div><div class="tablewrap"><table><thead><tr><th>SKU</th><th>Article</th><th>ABC</th><th>XYZ</th><th>EOQ</th><th>ROP</th><th>Couverture</th><th>Politique</th><th>Économie potentielle</th></tr></thead><tbody id="abceoqBody"></tbody></table></div></div>
     </section>
 
     <section class="section" id="audit">
       <div class="auditstack">
-        <div class="card"><h3 style="margin-top:0">Journal d’audit</h3><div class="tablewrap"><table><thead><tr><th>Date</th><th>Événement</th><th>Utilisateur</th><th>Détails</th></tr></thead><tbody id="auditBody"></tbody></table></div></div>
+        <div class="card"><div class="cardhead"><h3>Journal d’audit</h3><div class="headtools"><button class="btn csv" id="auditCsvBtn">↓ CSV</button></div></div><div class="tablewrap"><table><thead><tr><th>Date</th><th>Événement</th><th>Utilisateur</th><th>Détails</th></tr></thead><tbody id="auditBody"></tbody></table></div></div>
         <div class="card"><h3 style="margin-top:0">Mini UAT — 8 tests</h3><div class="tablewrap"><table style="min-width:0;width:100%"><thead><tr><th>Cas</th><th>Résultat attendu</th><th>Statut</th></tr></thead><tbody id="uatBody"></tbody></table></div></div>
+      </div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><h3 style="margin-top:0">Événements d’audit par type</h3><canvas id="auditEventChart" height="150"></canvas></div>
+        <div class="card"><h3 style="margin-top:0">Résultats UAT</h3><canvas id="uatResultChart" height="150"></canvas></div>
       </div>
       <div class="grid two" style="margin-top:16px">
         <div class="card"><h3 style="margin-top:0">5 Why — cas 1 : rupture article A</h3><div class="whygrid" id="whyBody1"></div></div>
@@ -273,7 +322,10 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
         <div class="card"><h3 style="margin-top:0">TO-BE</h3><ul><li>Le système calcule BNMP : <strong>Net = physique + transit − réservé</strong>.</li><li>Les exceptions déclenchent une alerte, une tâche et un PO brouillon avec garde-fous.</li><li>Le module transport pilote tournées, ETA, groupage et cross-docking.</li><li>Le journal d’audit trace chaque événement critique et supporte l’UAT.</li></ul></div>
       </div>
       <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Diagramme d’activités UML — swimlanes</h3><div class="swimlane-grid"><div class="swimlane-col"><h4>Magasinier</h4><div class="umlstep"><h4>1. Réception / comptage</h4><p>Compte le stock, réceptionne la marchandise et signale les écarts.</p></div><div class="umlstep"><h4>2. Correction inventaire</h4><p>Met à jour le physique ou soumet un rapport d’exception.</p></div><div class="umlstep"><h4>3. Réception finale</h4><p>Confirme la livraison, place au quai puis range ou cross-docke.</p></div></div><div class="swimlane-col"><h4>Système</h4><div class="umlstep"><h4>1. Calcul BNMP</h4><p>Calcule le net disponible, le statut et le message associé.</p></div><div class="umlstep"><h4>2. Automatisation</h4><p>Applique les règles IF/THEN, génère un PO brouillon et journalise.</p></div><div class="umlstep"><h4>3. Pilotage transport</h4><p>Met à jour ETA, priorités de réception et scénarios de groupage.</p></div></div><div class="swimlane-col"><h4>Acheteur / Superviseur</h4><div class="umlstep"><h4>1. Validation</h4><p>Valide le PO, ajuste la quantité et confirme le fournisseur actif.</p></div><div class="umlstep"><h4>2. Suivi</h4><p>Surveille les alertes, traite les exceptions et escalade si besoin.</p></div><div class="umlstep"><h4>3. Clôture</h4><p>Clôture la commande, documente la cause racine et lance les actions correctives.</p></div></div></div></div>
-      <div class="card" style="margin-top:16px"><h3 style="margin-top:0">Résumé du flux</h3><div class="mono">Réception stock → Calcul BNMP → Alerte / exception → Validation PO → Expédition / transport → Réception → Mise à jour inventaire → Audit</div></div>
+      <div class="grid two" style="margin-top:16px">
+        <div class="card"><h3 style="margin-top:0">Maturité du processus</h3><canvas id="processMaturityChart" height="155"></canvas></div>
+        <div class="card"><h3 style="margin-top:0">Résumé du flux</h3><div class="mono">Réception stock → Calcul BNMP → Alerte / exception → Validation PO → Expédition / transport → Réception → Mise à jour inventaire → Audit</div></div>
+      </div>
     </section>
     <footer>Supply pilot · application académique premium alignée BNMP, KPI, TRS, ABC/EOQ, achats, audit et transport.</footer>
   </main>
@@ -387,7 +439,7 @@ function openPage(page){
   document.getElementById('pageSubtitle').textContent = pageMeta[page][1];
   const quickPoBtn = document.getElementById('quickPoBtn');
   if(quickPoBtn) quickPoBtn.style.display = page==='kpi' ? 'none' : 'inline-flex';
-  if(page==='transport') drawTransportChart();
+  updateLiveDate();
 }
 window.openPage=openPage;
 document.querySelectorAll('.navbtn').forEach(btn=>btn.addEventListener('click',()=>openPage(btn.dataset.page)));
@@ -493,7 +545,7 @@ function renderSurveillance(){
   document.getElementById('exceptionsList').innerHTML = state.exceptions.slice(0,12).map(e=>`
     <div class="alertrow">
       <div><div><strong>${e.sku}</strong> · ${e.article}</div><div class="small">${e.type} · net ${e.net} / seuil ${e.threshold} · couverture ${e.coverageDays} j · responsable: ${e.owner}</div></div>
-      <div class="actions">${statusTag(e.severity)} ${statusTag(e.status)} <button class="btn" onclick="createPOForSku('${e.sku}','Surveillance')">Créer un PO</button></div>
+      <div class="actions equal">${statusTag(e.severity)} ${statusTag(e.status)} <button class="btn" onclick="createPOForSku('${e.sku}','Surveillance')">Créer un PO</button></div>
     </div>`).join('');
   document.getElementById('excSku').innerHTML = state.articles.slice(0,150).map(a=>`<option value="${a.sku}">${a.sku} — ${a.article}</option>`).join('');
 }
@@ -519,10 +571,6 @@ function renderTransport(){
       <div class="actions">${statusTag(p.status)} ${statusTag(p.priority)}</div>
     </div>`).join('');
   document.getElementById('crossDockBody').innerHTML = state.crossDock.map(r=>`<tr><td><strong>${r[0]}</strong></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
-  document.getElementById('consolidationBody').innerHTML = [
-    ['Baseline fournisseur', state.transportBaseline.trips, state.transportBaseline.otd+'%', state.transportBaseline.emptyKm+'%', money(state.transportBaseline.cost)],
-    ['Plan regroupé par zone', state.transportGrouped.trips, state.transportGrouped.otd+'%', state.transportGrouped.emptyKm+'%', money(state.transportGrouped.cost)]
-  ].map(r=>`<tr><td><strong>${r[0]}</strong></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`).join('');
 }
 function renderOrders(){
   document.getElementById('poTableBody').innerHTML = state.pos.slice(0,25).map(p=>`
@@ -573,8 +621,71 @@ function renderAudit(){
   document.getElementById('whyBody1').innerHTML = state.whyCases.rupture.map((w,i)=>`<div class="whycard"><h4>${i<4 ? 'Pourquoi '+(i+1) : 'Cause racine'}</h4><p>${w}</p></div>`).join('');
   document.getElementById('whyBody2').innerHTML = state.whyCases.transport.map((w,i)=>`<div class="whycard"><h4>${i<4 ? 'Pourquoi '+(i+1) : 'Cause racine'}</h4><p>${w}</p></div>`).join('');
 }
+
+
+function csvEscape(v){
+  const s = String(v ?? '');
+  return /[";,\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+function downloadCsv(filename, rows){
+  const csv = rows.map(r => r.map(csvEscape).join(';')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+}
+function exportStockCsv(){
+  const rows = [['SKU','Article','Famille','ABC','XYZ','Stock physique','Transit','Réservé','Net','Seuil','Couverture j','EOQ','ROP','Statut','Message']]
+    .concat(state.articles.map(a=>[a.sku,a.article,a.family,a.abc,a.xyz||'',a.stockPhysical,a.stockTransit,a.stockReserved,a.net,a.threshold,a.coverageDays,a.eoq,a.rop,a.serviceStatus,a.bnmpMessage]));
+  downloadCsv('supplypilot_inventaire.csv', rows);
+}
+function exportSurveillanceCsv(){
+  const rows = [['SKU','Article','Type','Sévérité','Statut','Responsable','Net','Seuil','Couverture j','Action']]
+    .concat(state.exceptions.map(e=>[e.sku,e.article,e.type,e.severity,e.status,e.owner,e.net,e.threshold,e.coverageDays,e.actionTaken||'']));
+  downloadCsv('supplypilot_surveillance.csv', rows);
+}
+function exportTransportCsv(){
+  const rows = [['Trip','PO','SKU','Zone','Transporteur','Mode','ETA','OTD %','Fill %','Empty km %','Idle','Statut']]
+    .concat(state.transportTelemetry.map(t=>[t.tripId,t.poId,t.sku,t.zone,t.carrier,t.mode,t.eta,t.otd,t.fill,t.emptyKm,t.idle,t.status]));
+  downloadCsv('supplypilot_transport.csv', rows);
+}
+function exportOrdersCsv(){
+  const rows = [['PO','SKU','Article','Qté','Fournisseur','Date','Statut','Priorité','Source','Garde-fou','ETA']]
+    .concat(state.pos.map(p=>[p.poId,p.sku,p.article,p.qty,p.supplierName,p.date,p.status,p.priority,p.source,p.guardrail,p.eta]));
+  downloadCsv('supplypilot_purchase_orders.csv', rows);
+}
+function exportSuppliersCsv(){
+  const rows = [['ID','Nom','Famille','Lead time j','Statut','Conformité %','Transporteur']]
+    .concat(state.suppliers.map(s=>[s.id,s.name,s.family,s.avgLeadDays,s.status,s.conformityRate,s.carrier]));
+  downloadCsv('supplypilot_fournisseurs.csv', rows);
+}
+function exportAbcCsv(){
+  const rows = [['SKU','Article','Famille','ABC','XYZ','Valeur annuelle','% valeur','% cumul','EOQ','ROP','Politique']]
+    .concat(state.articles.map(a=>[a.sku,a.article,a.family,a.abc,a.xyz||'',a.annualValue,a.valuePct,a.cumPct,a.eoq,a.rop,a.policy]));
+  downloadCsv('supplypilot_abc_eoq.csv', rows);
+}
+function exportAuditCsv(){
+  const rows = [['Date','Événement','Utilisateur','Détails']]
+    .concat(state.logs.map(l=>[l.date,l.type,l.user,l.details]));
+  downloadCsv('supplypilot_audit.csv', rows);
+}
+function exportCurrentPage(){
+  const active = document.querySelector('.section.active')?.id || 'dashboard';
+  if(active==='stock') return exportStockCsv();
+  if(active==='surveillance') return exportSurveillanceCsv();
+  if(active==='transport') return exportTransportCsv();
+  if(active==='orders') return exportOrdersCsv();
+  if(active==='suppliers') return exportSuppliersCsv();
+  if(active==='kpi') return exportAbcCsv();
+  if(active==='audit') return exportAuditCsv();
+  return exportStockCsv();
+}
+
 function drawCharts(){
   Object.values(charts).forEach(ch=>ch && ch.destroy && ch.destroy());
+
+  const sharedScales = {x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}};
   const top20 = [...state.articles].sort((a,b)=>b.annualValue-a.annualValue).slice(0,20);
   let cum=0, total=top20.reduce((s,a)=>s+a.annualValue,0);
   charts.pareto = new Chart(document.getElementById('paretoChart'), {
@@ -587,24 +698,61 @@ function drawCharts(){
   });
   const abcCounts=['A','B','C'].map(k=>state.articles.filter(a=>a.abc===k).length);
   charts.abc = new Chart(document.getElementById('abcChart'), { type:'doughnut', data:{labels:['A','B','C'], datasets:[{data:abcCounts, backgroundColor:['#60a5fa','#f59e0b','#a78bfa']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
-  charts.family = new Chart(document.getElementById('familyChart'), { type:'bar', data:{labels:state.familyValues.map(f=>f.family), datasets:[{label:'Valeur annuelle', data:state.familyValues.map(f=>Math.round(f.value/1000000*10)/10), backgroundColor:'rgba(34,197,94,.7)'}]}, options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
-  charts.stockStatus = new Chart(document.getElementById('stockStatusChart'), { type:'bar', data:{labels:['OK','À commander','Stockout'], datasets:[{data:[state.articles.filter(a=>a.serviceStatus==='OK').length,state.articles.filter(a=>a.serviceStatus==='À commander').length,state.articles.filter(a=>a.serviceStatus==='Stockout').length], backgroundColor:['#22c55e','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
+  charts.family = new Chart(document.getElementById('familyChart'), { type:'bar', data:{labels:state.familyValues.map(f=>f.family), datasets:[{label:'Valeur annuelle', data:state.familyValues.map(f=>Math.round(f.value/1000000*10)/10), backgroundColor:'rgba(34,197,94,.7)'}]}, options:{plugins:{legend:{display:false}}, scales:sharedScales} });
+
+  charts.stockStatus = new Chart(document.getElementById('stockStatusChart'), { type:'bar', data:{labels:['OK','À commander','Stockout'], datasets:[{data:[state.articles.filter(a=>a.serviceStatus==='OK').length,state.articles.filter(a=>a.serviceStatus==='À commander').length,state.articles.filter(a=>a.serviceStatus==='Stockout').length], backgroundColor:['#22c55e','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{display:false}}, scales:sharedScales} });
+  const stockCritical = [...state.articles].filter(a=>a.net<a.threshold).sort((a,b)=>(a.net-a.threshold)-(b.net-b.threshold)).slice(0,10);
+  charts.stockSummary = new Chart(document.getElementById('stockSummaryChart'), { type:'doughnut', data:{labels:['OK','À commander','Stockout'], datasets:[{data:[state.articles.filter(a=>a.serviceStatus==='OK').length,state.articles.filter(a=>a.serviceStatus==='À commander').length,state.articles.filter(a=>a.serviceStatus==='Stockout').length], backgroundColor:['#22c55e','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
+  charts.stockCritical = new Chart(document.getElementById('stockCriticalChart'), { type:'bar', data:{labels:stockCritical.map(a=>a.sku), datasets:[{label:'Écart vs seuil', data:stockCritical.map(a=>a.net-a.threshold), backgroundColor:'rgba(239,68,68,.72)', borderRadius:8}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
+
+  const sevLabels = ['Critique','Élevée','Modérée','Faible'];
+  charts.severity = new Chart(document.getElementById('severityChart'), { type:'bar', data:{labels:sevLabels, datasets:[{label:'Exceptions', data:sevLabels.map(k=>state.exceptions.filter(e=>e.severity===k).length), backgroundColor:['#ef4444','#f97316','#f59e0b','#60a5fa']}]}, options:{plugins:{legend:{display:false}}, scales:sharedScales} });
+  const typeMap = {};
+  state.exceptions.forEach(e=> typeMap[e.type] = (typeMap[e.type]||0)+1);
+  charts.exceptionType = new Chart(document.getElementById('exceptionTypeChart'), { type:'doughnut', data:{labels:Object.keys(typeMap), datasets:[{data:Object.values(typeMap), backgroundColor:['#60a5fa','#a78bfa','#34d399','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
+
   const trs = state.trs;
   charts.trs = new Chart(document.getElementById('trsChart'), { type:'bar', data:{ labels:['Disponibilité','Performance','Qualité','TRS global'], datasets:[ {label:'Réel %', data:[trs.availability,trs.performance,trs.quality,trs.trs], backgroundColor:['rgba(96,165,250,.72)','rgba(167,139,250,.72)','rgba(74,222,128,.72)','rgba(251,191,36,.78)'], borderRadius:8 }, {label:'Cible %', data:[90,95,99,85], type:'line', borderColor:'#f87171', borderWidth:2, pointRadius:0, tension:0} ]}, options:{ plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{ x:{ticks:{color:'#93a4c7'}}, y:{min:0,max:100,ticks:{color:'#93a4c7'}} } } });
   const topEOQ = [...state.articles].sort((a,b)=>b.eoq-a.eoq).slice(0,8);
-  charts.eoq = new Chart(document.getElementById('eoqChart'), { type:'bar', data:{labels:topEOQ.map(a=>a.sku), datasets:[{label:'EOQ', data:topEOQ.map(a=>a.eoq), backgroundColor:'rgba(45,212,191,.72)', borderRadius:8},{label:'ROP', data:topEOQ.map(a=>a.rop), type:'line', borderColor:'#fbbf24', backgroundColor:'#fbbf24', tension:0.25}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
+  charts.eoq = new Chart(document.getElementById('eoqChart'), { type:'bar', data:{labels:topEOQ.map(a=>a.sku), datasets:[{label:'EOQ', data:topEOQ.map(a=>a.eoq), backgroundColor:'rgba(45,212,191,.72)', borderRadius:8},{label:'ROP', data:topEOQ.map(a=>a.rop), type:'line', borderColor:'#fbbf24', backgroundColor:'#fbbf24', tension:0.25}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:sharedScales} });
   charts.xyz = new Chart(document.getElementById('xyzChart'), { type:'doughnut', data:{labels:['X','Y','Z'], datasets:[{data:['X','Y','Z'].map(k=>state.articles.filter(a=>a.xyz===k).length), backgroundColor:['#22c55e','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
+
   charts.supplier = new Chart(document.getElementById('supplierChart'), { type:'bar', data:{labels:state.suppliers.map(s=>s.name), datasets:[{label:'Conformité %', data:state.suppliers.map(s=>s.conformityRate), backgroundColor:'rgba(167,139,250,.72)'}]}, options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{min:70,max:100,ticks:{color:'#93a4c7'}}}} });
-  drawTransportChart();
+  charts.supplierLead = new Chart(document.getElementById('supplierLeadChart'), { type:'bar', data:{labels:state.suppliers.map(s=>s.name), datasets:[{label:'Lead time moyen (jours)', data:state.suppliers.map(s=>s.avgLeadDays), backgroundColor:'rgba(96,165,250,.72)'}]}, options:{plugins:{legend:{display:false}}, scales:sharedScales} });
+  const supplierStatusCounts = ['Actif','Inactif'].map(k=>state.suppliers.filter(s=>s.status===k).length);
+  charts.supplierStatus = new Chart(document.getElementById('supplierStatusChart'), { type:'doughnut', data:{labels:['Actif','Inactif'], datasets:[{data:supplierStatusCounts, backgroundColor:['#22c55e','#ef4444']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
+
+  const poStatuses = ['Brouillon','À valider','Envoyé','Reçu','Clos'];
+  charts.poStatus = new Chart(document.getElementById('poStatusChart'), { type:'doughnut', data:{labels:poStatuses, datasets:[{data:poStatuses.map(s=>state.pos.filter(p=>p.status===s).length), backgroundColor:['#60a5fa','#f59e0b','#a78bfa','#34d399','#64748b']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
+  const poBySupplier = {};
+  state.pos.forEach(p=> poBySupplier[p.supplierName]=(poBySupplier[p.supplierName]||0)+1);
+  charts.poSupplier = new Chart(document.getElementById('poSupplierChart'), { type:'bar', data:{labels:Object.keys(poBySupplier), datasets:[{label:'PO', data:Object.values(poBySupplier), backgroundColor:'rgba(34,197,94,.72)', borderRadius:8}]}, options:{plugins:{legend:{display:false}}, scales:sharedScales} });
+
+  const transportStatusLabels = ['Planifié','En transit','Retardé','Reçu'];
+  charts.transportStatus = new Chart(document.getElementById('transportStatusChart'), { type:'doughnut', data:{labels:transportStatusLabels, datasets:[{data:transportStatusLabels.map(s=>state.shipments.filter(x=>x.status===s).length), backgroundColor:['#60a5fa','#f59e0b','#ef4444','#22c55e']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
+  const zones = [...new Set(state.transportTelemetry.map(t=>t.zone))];
+  charts.transportZone = new Chart(document.getElementById('transportZoneChart'), { type:'bar', data:{labels:zones, datasets:[
+    {label:'OTD %', data:zones.map(z=>avg(state.transportTelemetry.filter(t=>t.zone===z).map(t=>t.otd))), backgroundColor:'rgba(96,165,250,.72)'},
+    {label:'Fill %', data:zones.map(z=>avg(state.transportTelemetry.filter(t=>t.zone===z).map(t=>t.fill))), backgroundColor:'rgba(34,197,94,.72)'}
+  ]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{min:0,max:100,ticks:{color:'#93a4c7'}}}} });
+
+  const eventMap = {};
+  state.logs.forEach(l=> eventMap[l.type] = (eventMap[l.type]||0)+1);
+  const eventLabels = Object.keys(eventMap).slice(0,8);
+  charts.auditEvents = new Chart(document.getElementById('auditEventChart'), { type:'bar', data:{labels:eventLabels, datasets:[{label:'Occurrences', data:eventLabels.map(k=>eventMap[k]), backgroundColor:'rgba(96,165,250,.72)', borderRadius:8}]}, options:{plugins:{legend:{display:false}}, scales:sharedScales} });
+  charts.uatResult = new Chart(document.getElementById('uatResultChart'), { type:'doughnut', data:{labels:['Pass','Fail'], datasets:[{data:[state.uatCases.filter(u=>u[2]==='Pass').length, state.uatCases.filter(u=>u[2]!=='Pass').length], backgroundColor:['#22c55e','#ef4444']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
+
+  charts.processMaturity = new Chart(document.getElementById('processMaturityChart'), { type:'radar', data:{labels:['BNMP','Automatisation','Transport','Audit','Exceptions','Visibilité'], datasets:[
+    {label:'AS-IS', data:[2,1,1,1,2,2], borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,.18)'},
+    {label:'TO-BE', data:[5,5,4,5,5,5], borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,.18)'}
+  ]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{r:{angleLines:{color:'rgba(148,163,184,.2)'}, grid:{color:'rgba(148,163,184,.2)'}, pointLabels:{color:'#dbe7ff'}, ticks:{display:false}, suggestedMin:0, suggestedMax:5}}} });
 }
-function drawTransportChart(){
-  if(charts.transport) charts.transport.destroy();
-  const labels = ['Baseline','Plan regroupé'];
-  charts.transport = new Chart(document.getElementById('transportChart'), { type:'bar', data:{labels, datasets:[
-    {label:'OTD %', data:[state.transportBaseline.otd, state.transportGrouped.otd], backgroundColor:'rgba(96,165,250,.65)'},
-    {label:'Empty km %', data:[state.transportBaseline.emptyKm, state.transportGrouped.emptyKm], backgroundColor:'rgba(239,68,68,.55)'},
-    {label:'Coût / 100', data:[state.transportBaseline.cost/100, state.transportGrouped.cost/100], backgroundColor:'rgba(34,197,94,.55)'}
-  ]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}} });
+function avg(arr){ return arr.length ? +(arr.reduce((s,v)=>s+v,0)/arr.length).toFixed(1) : 0; }
+function updateLiveDate(){
+  const now = new Date();
+  const txt = now.toLocaleDateString('fr-CA', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const el = document.getElementById('liveDateText');
+  if(el) el.textContent = txt.charAt(0).toUpperCase() + txt.slice(1);
 }
 function updateBadges(){
   document.getElementById('survBadge').textContent = state.exceptions.filter(e=>e.status!=='Résolu').length;
@@ -614,6 +762,7 @@ function updateBadges(){
 }
 function renderAll(){
   recomputeMetrics();
+  updateLiveDate();
   renderDashboard(); renderStock(); renderSurveillance(); renderTransport(); renderOrders(); renderSuppliers(); renderKPI(); renderAudit(); updateBadges(); drawCharts();
 }
 document.getElementById('stockSearch').addEventListener('input', renderStock);
