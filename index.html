@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Supply pilot</title>
+<title>Supply pilot - v14</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root {
@@ -114,6 +114,25 @@ canvas{max-height:260px !important}
 #dashboard canvas{max-height:210px !important}
 #process .umlgrid{margin-top:8px}
 
+
+.sidefoot{margin-top:18px;padding:14px 12px;border:1px solid rgba(96,165,250,.18);border-radius:16px;background:linear-gradient(180deg,rgba(14,24,44,.9),rgba(10,17,31,.72));box-shadow:0 12px 30px rgba(0,0,0,.18)}
+.sidefoot .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(96,165,250,.16);border:1px solid rgba(96,165,250,.24);font-size:12px;font-weight:700;color:#cfe0ff;margin-bottom:8px}
+.sidebar .small{font-size:12px;color:#8ea5cf;line-height:1.4}
+.topbar{backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.16)}
+.titleblock h2{letter-spacing:-.02em}
+.titleblock p{max-width:760px}
+.card{box-shadow:0 12px 32px rgba(4,10,24,.28), inset 0 1px 0 rgba(255,255,255,.02);border-color:rgba(96,165,250,.10)}
+.card:hover{transform:translateY(-1px);transition:transform .18s ease, box-shadow .18s ease;box-shadow:0 16px 34px rgba(2,8,22,.34), inset 0 1px 0 rgba(255,255,255,.03)}
+.metric .value{letter-spacing:-.03em}
+.btn{transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(59,130,246,.18)}
+.btn.csv{border-color:rgba(96,165,250,.42)}
+.navbtn{transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease}
+.navbtn:hover{transform:translateX(2px)}
+.tablewrap table tbody tr:hover{background:rgba(96,165,250,.05)}
+canvas{filter:drop-shadow(0 8px 18px rgba(2,8,22,.10))}
+@media (min-width:1200px){#dashboard canvas{max-height:190px !important} #kpi canvas{max-height:205px !important}}
+
 </style>
 </head>
 <body>
@@ -121,7 +140,7 @@ canvas{max-height:260px !important}
   <aside class="sidebar">
     <div class="brand">
       <div class="logo">SP</div>
-      <div><h1>SupplyPilot</h1><p>v3.0 · SIAG</p></div>
+      <div><h1>SupplyPilot</h1><p>v14.0 · SIAG</p></div>
     </div>
     <button class="navbtn active" data-page="dashboard"><span>⊞ Dashboard</span><span class="badge">Live</span></button>
     <button class="navbtn" data-page="stock"><span>✏️ Stock éditable</span><span class="badge">CRUD</span></button>
@@ -132,12 +151,13 @@ canvas{max-height:260px !important}
     <button class="navbtn" data-page="kpi"><span>📊 KPI, ABC, EOQ & TRS</span></button>
     <button class="navbtn" data-page="audit"><span>📋 Journal & UAT</span><span class="badge" id="auditBadge">0</span></button>
     <button class="navbtn" data-page="process"><span>🔄 Processus UML</span></button>
+    <div class="sidefoot"><div class="pill">Version 14.0</div><div class="small">Dernière passe visuelle et remise</div></div>
   </aside>
   <main class="main">
     <div class="topbar">
       <div class="titleblock">
         <h2 id="pageTitle">Dashboard</h2>
-        <p id="pageSubtitle">Vue direction : inventaire, service, achats, transport et exceptions.</p>
+        <p id="pageSubtitle">Vue direction : inventaire, service, achats, transport et exceptions</p>
       </div>
       <div class="toolbar">
         <label class="topsearch"><span>🔎</span><input id="globalSearch" placeholder="Rechercher"></label>
@@ -390,7 +410,7 @@ state.transportTelemetry = state.shipments.map((s,i)=>({
 }));
 
 const pageMeta = {
-  dashboard:["Dashboard","Vue direction : inventaire, service, achats, transport et exceptions."],
+  dashboard:["Dashboard","Vue direction : inventaire, service, achats, transport et exceptions"],
   stock:["Stock éditable","Liste d’inventaire modifiable et corrections manuelles."],
   surveillance:["Surveillance & alertes","Monitoring, écarts d’inventaire, santé du stock et actions correctives."],
   transport:["Transport & réceptions","Expéditions fournisseurs, ETA, retards, quais, coûts et impact service."],
