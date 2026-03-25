@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Supply pilot - v14</title>
+<title>Supply pilot - v16</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <style>
 :root {
   --bg:#0b1020; --panel:#121a2b; --panel2:#172239; --line:#24314f; --text:#edf2ff; --muted:#93a4c7;
@@ -97,6 +98,9 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
 .card canvas{width:100% !important;max-height:180px !important}
 .chart-tall canvas{max-height:210px !important}
 .chart-mini canvas{max-height:150px !important}
+.chart-xl canvas{min-height:260px !important;max-height:260px !important}
+.chart-md canvas{min-height:220px !important;max-height:220px !important}
+.file-input{display:none}
 
 
 .cardhead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
@@ -106,12 +110,15 @@ footer{margin-top:20px;color:var(--muted);font-size:12px}
 .btn.csv:hover{background:rgba(59,130,246,.18)}
 .brand p{letter-spacing:.02em}
 .toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.topsearch{display:flex;align-items:center;gap:8px;min-width:260px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.03);color:var(--muted)}
-.topsearch input{background:transparent;border:0;outline:0;color:var(--text);width:100%}
-.topsearch span{opacity:.85}
-canvas{max-height:260px !important}
-#kpi canvas{max-height:220px !important}
-#dashboard canvas{max-height:210px !important}
+.topsearch{display:flex;align-items:center;gap:10px;min-width:340px;padding:12px 16px;border:1px solid rgba(96,165,250,.22);border-radius:18px;background:linear-gradient(180deg,rgba(16,26,46,.96),rgba(11,18,34,.86));color:var(--muted);box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 8px 24px rgba(0,0,0,.18)}
+.topsearch .iconwrap{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;background:rgba(96,165,250,.12);color:#b9d2ff;flex:0 0 auto}
+.topsearch input{background:transparent;border:0;outline:0;color:var(--text);width:100%;font-size:15px}
+.topsearch .kbd{padding:4px 8px;border:1px solid rgba(148,163,184,.24);border-radius:10px;font-size:12px;color:#c6d4f5;background:rgba(255,255,255,.03)}
+canvas{max-height:320px !important}
+#kpi canvas{max-height:300px !important}
+#dashboard canvas{max-height:280px !important}
+#causeChart{max-height:320px !important;min-height:320px !important}
+#eoqChart{max-height:340px !important;min-height:340px !important}
 #process .umlgrid{margin-top:8px}
 
 
@@ -140,7 +147,7 @@ canvas{filter:drop-shadow(0 8px 18px rgba(2,8,22,.10))}
   <aside class="sidebar">
     <div class="brand">
       <div class="logo">SP</div>
-      <div><h1>SupplyPilot</h1><p>v14.0 · SIAG</p></div>
+      <div><h1>SupplyPilot</h1><p>v16.0 · SIAG</p></div>
     </div>
     <button class="navbtn active" data-page="dashboard"><span>⊞ Dashboard</span><span class="badge">Live</span></button>
     <button class="navbtn" data-page="stock"><span>✏️ Stock éditable</span><span class="badge">CRUD</span></button>
@@ -160,9 +167,11 @@ canvas{filter:drop-shadow(0 8px 18px rgba(2,8,22,.10))}
         <p id="pageSubtitle">Vue direction : inventaire, service, achats, transport et exceptions</p>
       </div>
       <div class="toolbar">
-        <label class="topsearch"><span>🔎</span><input id="globalSearch" placeholder="Rechercher"></label>
+        <label class="topsearch"><span class="iconwrap">🔎</span><input id="globalSearch" placeholder="Rechercher un SKU, article, fournisseur ou PO"><span class="kbd">Ctrl K</span></label>
         <div class="livechip"><span>📅</span><span id="liveDateText"></span></div>
-        <button class="btn csv" id="topCsvBtn">↓ CSV</button>
+        <button class="btn ghost" id="topImportBtn">↑ Import</button>
+        <button class="btn csv" id="topExportBtn">↓ Export</button>
+        <input class="file-input" type="file" id="importFileInput" accept=".csv,.xlsx,.xls">
         <button class="btn" id="quickPoBtn">+ Nouveau PO</button>
         <button class="btn danger" onclick="openPage('surveillance')">Voir alertes</button>
       </div>
@@ -170,17 +179,21 @@ canvas{filter:drop-shadow(0 8px 18px rgba(2,8,22,.10))}
 
     <section class="section active" id="dashboard">
       <div class="grid kpi">
-        <div class="card metric"><div class="label">Valeur inventaire</div><div class="value" id="mInventoryValue"></div><div class="sub">Portefeuille de 400 SKU actifs</div></div>
+        <div class="card metric"><div class="label">Valeur inventaire</div><div class="value" id="mInventoryValue"></div><div class="sub">Portefeuille total des SKU actifs</div></div>
         <div class="card metric"><div class="label">Taux de service</div><div class="value" id="mServiceRate"></div><div class="sub">SKU avec net ≥ seuil minimum</div></div>
         <div class="card metric"><div class="label">Articles critiques</div><div class="value" id="mCriticalItems"></div><div class="sub">Sous seuil ou rupture</div></div>
+        <div class="card metric"><div class="label">TRS global</div><div class="value" id="mTRS"></div><div class="sub">Disponibilité × performance × qualité</div></div>
+        <div class="card metric"><div class="label">EOQ moyen</div><div class="value" id="mAvgEOQ"></div><div class="sub">Quantité économique moyenne</div></div>
+        <div class="card metric"><div class="label">ROP moyen</div><div class="value" id="mAvgROP"></div><div class="sub">Point de commande moyen</div></div>
+        <div class="card metric"><div class="label">Couverture moyenne</div><div class="value" id="mAvgCoverage"></div><div class="sub">Jours de stock disponibles</div></div>
         <div class="card metric"><div class="label">OTIF transport</div><div class="value" id="mOTIF"></div><div class="sub">Expéditions à l’heure et complètes</div></div>
       </div>
       <div class="grid two">
-        <div class="card"><h3 style="margin:0 0 8px">Pareto valeur annuelle</h3><canvas id="paretoChart" height="120"></canvas></div>
+        <div class="card chart-xl"><h3 style="margin:0 0 8px">Pareto valeur annuelle</h3><canvas id="paretoChart" height="260"></canvas></div>
         <div class="card"><h3 style="margin:0 0 8px">Répartition ABC</h3><canvas id="abcChart" height="165"></canvas></div>
       </div>
       <div class="grid two" style="margin-top:16px">
-        <div class="card"><h3 style="margin:0 0 8px">Top familles à valeur élevée</h3><canvas id="familyChart" height="130"></canvas></div>
+        <div class="card chart-md"><h3 style="margin:0 0 8px">Top familles à valeur élevée</h3><canvas id="familyChart" height="220"></canvas></div>
         <div class="card"><h3 style="margin:0 0 8px">Centre d’actions</h3><div id="dashboardActions"></div></div>
       </div>
       <div class="grid two" style="margin-top:16px">
@@ -192,7 +205,7 @@ canvas{filter:drop-shadow(0 8px 18px rgba(2,8,22,.10))}
     <section class="section" id="stock">
       <div class="grid two">
         <div class="card">
-          <div class="cardhead"><h3>Liste d’inventaire modifiable</h3><div class="headtools"><button class="btn csv" id="stockCsvBtn">↓ CSV</button></div></div>
+          <div class="cardhead"><h3>Liste d’inventaire modifiable</h3><div class="headtools"><button class="btn ghost" id="stockImportBtn">↑ Import</button><button class="btn csv" id="stockCsvBtn">↓ Export</button></div></div>
           <div class="small" style="margin-bottom:10px">Modifie à la main le stock physique, le transit ou le réservé. Le net disponible, le statut et les alertes se recalculent automatiquement.</div><div class="importnote" style="margin-bottom:10px"><span class="small">Jeu de données préchargé depuis le classeur de cours. L’application peut fonctionner immédiatement sans import externe.</span><span class="messagepill">BNMP actif</span></div>
           <div class="actions" style="margin-bottom:10px">
             <input id="stockSearch" placeholder="Rechercher SKU ou article" style="max-width:280px">
@@ -229,12 +242,13 @@ canvas{filter:drop-shadow(0 8px 18px rgba(2,8,22,.10))}
         <div class="card metric"><div class="label">Santé du stock</div><div class="value" id="stockHealth"></div><div class="sub">Score composite inventaire</div></div>
         <div class="card metric"><div class="label">PO suggérés</div><div class="value" id="suggestedPO"></div><div class="sub">Actions automatiques possibles</div></div>
       </div>
-      <div class="grid two" style="margin-bottom:16px">
-        <div class="card"><h3 style="margin-top:0">Exceptions par sévérité</h3><canvas id="severityChart" height="155"></canvas></div>
-        <div class="card"><h3 style="margin-top:0">Exceptions par catégorie</h3><canvas id="exceptionTypeChart" height="155"></canvas></div>
+      <div class="grid three" style="margin-bottom:16px">
+        <div class="card chart-md"><h3 style="margin-top:0">Exceptions par sévérité</h3><canvas id="severityChart" height="220"></canvas></div>
+        <div class="card chart-md"><h3 style="margin-top:0">Exceptions par catégorie</h3><canvas id="exceptionTypeChart" height="220"></canvas></div>
+        <div class="card chart-md"><h3 style="margin-top:0">Analyse des causes — écarts d’inventaire</h3><canvas id="causeChart" height="220"></canvas></div>
       </div>
       <div class="grid two">
-        <div class="card"><div class="cardhead"><h3>Centre d’exceptions</h3><div class="headtools"><button class="btn csv" id="survCsvBtn">↓ CSV</button></div></div><div id="exceptionsList"></div></div>
+        <div class="card"><div class="cardhead"><h3>Centre d’exceptions</h3><div class="headtools"><button class="btn csv" id="survCsvBtn">↓ Export</button></div></div><div id="exceptionsList"></div><div style="margin-top:14px"></div><div class="cardhead"><h3>Alertes automatisées — écarts d’inventaire</h3><div class="headtools"><span class="messagepill" id="discrepancyAlertCount"></span></div></div><div id="discrepancyAlerts"></div></div>
         <div class="card">
           <h3 style="margin-top:0">Formulaire — écart d’inventaire</h3>
           <div class="formgrid">
@@ -263,7 +277,7 @@ canvas{filter:drop-shadow(0 8px 18px rgba(2,8,22,.10))}
         <div class="card metric"><div class="label">Idle</div><div class="value" id="shipIdle"></div><div class="sub">Temps d’attente moyen</div></div>
       </div>
       <div class="transportgrid" style="margin-top:16px">
-        <div class="card"><div class="cardhead"><h3>Tournées & livraisons</h3><div class="headtools"><button class="btn csv" id="transportCsvBtn">↓ CSV</button></div></div><div class="small" style="margin-bottom:10px">Vue regroupée des expéditions fournisseurs, livraisons et impact sur le dernier kilomètre.</div><div class="tablewrap"><table><thead><tr><th>Trip</th><th>PO</th><th>SKU</th><th>Zone</th><th>Transporteur</th><th>Mode</th><th>ETA</th><th>OTD</th><th>Fill%</th><th>Statut</th></tr></thead><tbody id="tripTableBody"></tbody></table></div></div>
+        <div class="card"><div class="cardhead"><h3>Tournées & livraisons</h3><div class="headtools"><button class="btn csv" id="transportCsvBtn">↓ Export</button></div></div><div class="small" style="margin-bottom:10px">Vue regroupée des expéditions fournisseurs, livraisons et impact sur le dernier kilomètre.</div><div class="tablewrap"><table><thead><tr><th>Trip</th><th>PO</th><th>SKU</th><th>Zone</th><th>Transporteur</th><th>Mode</th><th>ETA</th><th>OTD</th><th>Fill%</th><th>Statut</th></tr></thead><tbody id="tripTableBody"></tbody></table></div></div>
         <div class="stack">
           <div class="card"><h3 style="margin-top:0">Priorités de réception</h3><div id="receivingPriorities"></div></div>
           <div class="card"><h3 style="margin-top:0">Cross-docking</h3><div class="small">Simulation qualitative stockage vs cross-docking pour les SKU rapides et critiques.</div><div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Mode</th><th>Délai</th><th>Stockage</th><th>Impact attendu</th></tr></thead><tbody id="crossDockBody"></tbody></table></div></div>
@@ -277,7 +291,7 @@ canvas{filter:drop-shadow(0 8px 18px rgba(2,8,22,.10))}
 
     <section class="section" id="orders">
       <div class="stack">
-        <div class="card"><div class="cardhead"><h3>Workflow PO</h3><div class="headtools"><button class="btn csv" id="ordersCsvBtn">↓ CSV</button><button class="btn" id="ordersNewPoBtn">+ Nouveau PO</button></div></div><div class="tablewrap"><table><thead><tr><th>PO</th><th>SKU</th><th>Qté</th><th>Fournisseur</th><th>Date</th><th>Statut</th><th>Garde-fou</th><th>Action</th></tr></thead><tbody id="poTableBody"></tbody></table></div></div>
+        <div class="card"><div class="cardhead"><h3>Workflow PO</h3><div class="headtools"><button class="btn csv" id="ordersCsvBtn">↓ Export</button><button class="btn" id="ordersNewPoBtn">+ Nouveau PO</button></div></div><div class="tablewrap"><table><thead><tr><th>PO</th><th>SKU</th><th>Qté</th><th>Fournisseur</th><th>Date</th><th>Statut</th><th>Garde-fou</th><th>Action</th></tr></thead><tbody id="poTableBody"></tbody></table></div></div>
         <div class="card orders-form">
           <h3 style="margin-top:0">Créer un PO brouillon</h3>
           <div class="formgrid"><label>SKU<select id="poSku"></select></label><label>Quantité<input type="number" id="poQty"></label><label>Fournisseur<select id="poSupplier"></select></label><label>Priorité<select id="poPriority"><option>Critique</option><option>Élevée</option><option>Normale</option></select></label></div>
@@ -294,7 +308,7 @@ canvas{filter:drop-shadow(0 8px 18px rgba(2,8,22,.10))}
 
     <section class="section" id="suppliers">
       <div class="supplierstack">
-        <div class="card"><div class="cardhead"><h3>Base fournisseurs</h3><div class="headtools"><button class="btn csv" id="supplierCsvBtn">↓ CSV</button></div></div><div class="tablewrap"><table><thead><tr><th>ID</th><th>Nom</th><th>Famille</th><th>Délai moyen</th><th>Statut</th><th>Taux conformité</th><th>Transporteur</th></tr></thead><tbody id="suppliersBody"></tbody></table></div></div>
+        <div class="card"><div class="cardhead"><h3>Base fournisseurs</h3><div class="headtools"><button class="btn csv" id="supplierCsvBtn">↓ Export</button></div></div><div class="tablewrap"><table><thead><tr><th>ID</th><th>Nom</th><th>Famille</th><th>Délai moyen</th><th>Statut</th><th>Taux conformité</th><th>Transporteur</th></tr></thead><tbody id="suppliersBody"></tbody></table></div></div>
         <div class="card"><h3 style="margin-top:0">Performance fournisseur</h3><canvas id="supplierChart" height="120"></canvas><div class="small" style="margin-top:10px">Lecture : conformité fournisseur, stabilité de délai et capacité à soutenir le taux de service interne.</div></div>
       </div>
     
@@ -311,18 +325,18 @@ canvas{filter:drop-shadow(0 8px 18px rgba(2,8,22,.10))}
       </div>
       <div class="grid two" style="margin-top:16px">
         <div class="card"><h3 style="margin-top:0">Analyse TRS détaillée</h3><div class="kpi-mini" style="margin-bottom:12px"><div class="mini"><div class="small">Disponibilité</div><div class="value" id="trsAvailOut" style="font-size:24px"></div></div><div class="mini"><div class="small">Performance</div><div class="value" id="trsPerfOut" style="font-size:24px"></div></div><div class="mini"><div class="small">Qualité</div><div class="value" id="trsQualOut" style="font-size:24px"></div></div></div><div class="tablewrap"><table><thead><tr><th>Dimension</th><th>Réel</th><th>Cible</th><th>Écart</th><th>Lecture opérationnelle</th></tr></thead><tbody id="trsDetailBody"></tbody></table></div></div>
-        <div class="card"><h3 style="margin-top:0">Optimisation du stock (EOQ)</h3><canvas id="eoqChart" height="165"></canvas><div class="small" id="eoqExplain" style="margin-top:8px"></div><div class="small" style="margin-top:8px">EOQ = √(2DS/H). Appliqué prioritairement aux articles A et B pour équilibrer coût de commande et coût de possession.</div></div>
+        <div class="card chart-xl"><h3 style="margin-top:0">Optimisation du stock (EOQ)</h3><canvas id="eoqChart" height="280"></canvas><div class="small" id="eoqExplain" style="margin-top:10px"></div><div class="small" style="margin-top:10px">Lecture croisée EOQ / ROP pour les articles prioritaires : l’objectif est de visualiser la quantité économique de commande versus le niveau de déclenchement du réapprovisionnement.</div></div>
       </div>
       <div class="grid two" style="margin-top:16px">
         <div class="card"><h3 style="margin-top:0">ABC / XYZ — politique par classe</h3><div class="policygrid" id="policyGrid"></div></div>
         <div class="card"><h3 style="margin-top:0">Segmentation XYZ</h3><canvas id="xyzChart" height="165"></canvas><div class="small" id="xyzExplain" style="margin-top:8px"></div></div>
       </div>
-      <div class="card" style="margin-top:16px"><div class="cardhead"><h3>Articles A / B prioritaires</h3><div class="headtools"><button class="btn csv" id="abceoqCsvBtn">↓ CSV</button></div></div><div class="tablewrap"><table><thead><tr><th>SKU</th><th>Article</th><th>ABC</th><th>XYZ</th><th>EOQ</th><th>ROP</th><th>Couverture</th><th>Politique</th><th>Économie potentielle</th></tr></thead><tbody id="abceoqBody"></tbody></table></div></div>
+      <div class="card" style="margin-top:16px"><div class="cardhead"><h3>Articles A / B prioritaires</h3><div class="headtools"><button class="btn csv" id="abceoqCsvBtn">↓ Export</button></div></div><div class="tablewrap"><table><thead><tr><th>SKU</th><th>Article</th><th>ABC</th><th>XYZ</th><th>EOQ</th><th>ROP</th><th>Couverture</th><th>Politique</th><th>Économie potentielle</th></tr></thead><tbody id="abceoqBody"></tbody></table></div></div>
     </section>
 
     <section class="section" id="audit">
       <div class="auditstack">
-        <div class="card"><div class="cardhead"><h3>Journal d’audit</h3><div class="headtools"><button class="btn csv" id="auditCsvBtn">↓ CSV</button></div></div><div class="tablewrap"><table><thead><tr><th>Date</th><th>Événement</th><th>Utilisateur</th><th>Détails</th></tr></thead><tbody id="auditBody"></tbody></table></div></div>
+        <div class="card"><div class="cardhead"><h3>Journal d’audit</h3><div class="headtools"><button class="btn csv" id="auditCsvBtn">↓ Export</button></div></div><div class="tablewrap"><table><thead><tr><th>Date</th><th>Événement</th><th>Utilisateur</th><th>Détails</th></tr></thead><tbody id="auditBody"></tbody></table></div></div>
         <div class="card"><h3 style="margin-top:0">Mini UAT — 8 tests</h3><div class="tablewrap"><table style="min-width:0;width:100%"><thead><tr><th>Cas</th><th>Résultat attendu</th><th>Statut</th></tr></thead><tbody id="uatBody"></tbody></table></div></div>
       </div>
       <div class="grid two" style="margin-top:16px">
@@ -408,6 +422,8 @@ state.transportTelemetry = state.shipments.map((s,i)=>({
   tripId:'TRIP-'+String(i+1).padStart(3,'0'), poId:s.poId, sku:s.sku, zone:['Nord','Sud','Est','Ouest','Centre'][i%5], carrier:s.carrier, mode:s.mode, eta:s.eta,
   otd:s.status==='Retardé'?0:100, fill:76 + (i%5)*4, emptyKm:8 + (i%4)*3, idle:12 + (i%6)*5, status:s.status
 }));
+
+state.exceptions.forEach((e,i)=>{ if(!e.cause){ e.cause = ['Erreur de prélèvement','Erreur de réception','Mouvement non confirmé','Dommage / rebut','Écart cyclique'][i%5]; } });
 
 const pageMeta = {
   dashboard:["Dashboard","Vue direction : inventaire, service, achats, transport et exceptions"],
@@ -511,6 +527,10 @@ function renderDashboard(){
   document.getElementById('mInventoryValue').textContent = money(state.metrics.inventoryValue);
   document.getElementById('mServiceRate').textContent = state.metrics.serviceRate + '%';
   document.getElementById('mCriticalItems').textContent = num(state.metrics.criticalItems);
+  document.getElementById('mTRS').textContent = state.trs.trs + '%';
+  document.getElementById('mAvgEOQ').textContent = num(state.metrics.avgEOQ);
+  document.getElementById('mAvgROP').textContent = num(state.metrics.avgROP);
+  document.getElementById('mAvgCoverage').textContent = state.metrics.avgCoverage + ' j';
   document.getElementById('mOTIF').textContent = state.metrics.transportOTIF + '%';
   const critical = topCritical(6);
   document.getElementById('dashboardActions').innerHTML = critical.map(a=>`
@@ -564,9 +584,18 @@ function renderSurveillance(){
   document.getElementById('suggestedPO').textContent = topCritical(12).length;
   document.getElementById('exceptionsList').innerHTML = state.exceptions.slice(0,12).map(e=>`
     <div class="alertrow">
-      <div><div><strong>${e.sku}</strong> · ${e.article}</div><div class="small">${e.type} · net ${e.net} / seuil ${e.threshold} · couverture ${e.coverageDays} j · responsable: ${e.owner}</div></div>
+      <div><div><strong>${e.sku}</strong> · ${e.article}</div><div class="small">${e.type} · cause: ${e.cause || 'Cycle count'} · net ${e.net} / seuil ${e.threshold} · couverture ${e.coverageDays} j · responsable: ${e.owner}</div></div>
       <div class="actions equal">${statusTag(e.severity)} ${statusTag(e.status)} <button class="btn" onclick="createPOForSku('${e.sku}','Surveillance')">Créer un PO</button></div>
     </div>`).join('');
+  const discrepancyAlerts = state.articles.filter(a => a.stockPhysical - (a.net + a.stockReserved - a.stockTransit) !== 0 || a.net < 0 || a.coverageDays < 10).slice(0,8).map(a=>{
+    const theo = a.net + a.stockReserved - a.stockTransit;
+    const gap = a.stockPhysical - theo;
+    const severity = a.net < 0 ? 'Critique' : (Math.abs(gap) > Math.max(25, a.threshold*0.1) ? 'Élevée' : 'Modérée');
+    const cause = gap < 0 ? 'Sortie non confirmée / prélèvement' : (gap > 0 ? 'Réception non déclarée / surplus' : 'Couverture faible');
+    return {sku:a.sku, article:a.article, gap, severity, cause, coverageDays:a.coverageDays, net:a.net};
+  });
+  document.getElementById('discrepancyAlertCount').textContent = discrepancyAlerts.length + ' alertes';
+  document.getElementById('discrepancyAlerts').innerHTML = discrepancyAlerts.map(d=>`<div class="alertrow"><div><div><strong>${d.sku}</strong> · ${d.article}</div><div class="small">Cause probable: ${d.cause} · écart ${d.gap} · net ${d.net} · couverture ${d.coverageDays} j</div></div><div class="actions equal">${statusTag(d.severity)} <button class="btn danger" onclick="openPage('surveillance')">Escalader</button><button class="btn" onclick="createPOForSku('${d.sku}','Alerte auto')">Créer un PO</button></div></div>`).join('');
   document.getElementById('excSku').innerHTML = state.articles.slice(0,150).map(a=>`<option value="${a.sku}">${a.sku} — ${a.article}</option>`).join('');
 }
 function renderTransport(){
@@ -702,6 +731,91 @@ function exportCurrentPage(){
   return exportStockCsv();
 }
 
+function normalizeImportedRow(r){
+  const row = {};
+  Object.keys(r || {}).forEach(k => row[String(k).trim().toLowerCase()] = r[k]);
+  const get = (...keys) => {
+    for (const k of keys){
+      const v = row[k.toLowerCase()];
+      if (v !== undefined && v !== null && v !== '') return v;
+    }
+    return '';
+  };
+  const sku = String(get('sku','item','code')).trim();
+  if(!sku) return null;
+  const article = String(get('article','description','item_name','nom') || 'Article importé').trim();
+  const family = String(get('famille','family','category') || 'MRO').trim();
+  const abc = String(get('abc','classe abc','class') || 'B').trim().toUpperCase().charAt(0) || 'B';
+  const xyz = String(get('xyz','classe xyz') || 'Y').trim().toUpperCase().charAt(0) || 'Y';
+  const stockPhysical = Number(get('stock_physique','physique','stock physical','stock','on_hand') || 0);
+  const stockTransit = Number(get('transit','in_transit') || 0);
+  const stockReserved = Number(get('réservé','reserve','reserved') || 0);
+  const threshold = Number(get('seuil_min','threshold','seuil','min') || 100);
+  const unitCost = Number(get('coût','cout','coût_unitaire','cout_unitaire','unit_cost') || 50);
+  const annualDemand = Number(get('demande_annuelle','annual_demand','demande') || 5000);
+  const leadTime = Number(get('lead_time','leadtime','delai','délai') || 7);
+  const orderCost = Number(get('s','order_cost','cout_commande') || 40);
+  const holdingRate = Number(get('h','holding_rate','taux_possession') || 20);
+  const dailyDemand = Math.max(1, +(annualDemand/365).toFixed(1));
+  const safetyStock = Math.round(dailyDemand * Math.max(leadTime,1) * (xyz==='X' ? 0.35 : xyz==='Y' ? 0.65 : 1.05));
+  const annualValue = +(annualDemand * unitCost).toFixed(0);
+  const annualHolding = +(unitCost * (holdingRate/100)).toFixed(2);
+  const eoq = Math.max(1, Math.round(Math.sqrt((2 * annualDemand * Math.max(orderCost,1)) / Math.max(annualHolding,1))));
+  const cycleDays = Math.max(1, Math.round(365 / Math.max(annualDemand / eoq, 1)));
+  const rop = Math.round(dailyDemand * leadTime + safetyStock);
+  return {
+    id: state.articles.length + Math.floor(Math.random()*10000),
+    sku, article, family,
+    annualDemand, unitCost, leadTime, safetyStock, holdingRate, orderCost,
+    annualValue, annualHolding, eoq, ordersPerYear: Math.round(annualDemand / Math.max(eoq,1)),
+    cycleDays, rop, abc: ['A','B','C'].includes(abc) ? abc : 'B',
+    xyz: ['X','Y','Z'].includes(xyz) ? xyz : 'Y',
+    purchasePolicy: abc==='A' ? 'Contrôle strict + validation' : (abc==='B' ? 'Revue périodique' : 'Gestion simplifiée'),
+    savingPct: abc==='A' ? 8 : 4,
+    savingPotential: Math.round(annualValue * (abc==='A' ? 0.08 : 0.04)),
+    threshold, dailyDemand,
+    supplierId:'SUP-01', supplierName:'Nordex Industriel',
+    stockPhysical, stockTransit, stockReserved
+  };
+}
+function importRows(rows){
+  const imported = rows.map(normalizeImportedRow).filter(Boolean);
+  if(!imported.length){ alert('Aucune ligne valide trouvée dans le fichier importé.'); return; }
+  state.articles = imported;
+  state.logs.unshift({date:new Date().toLocaleString('fr-CA'), type:'IMPORT_COMPLETED', user:'superviseur', details:`${imported.length} articles importés`});
+  renderAll();
+  openPage('stock');
+  alert(`${imported.length} lignes importées avec succès.`);
+}
+function handleImportFile(file){
+  if(!file) return;
+  const name = (file.name || '').toLowerCase();
+  if(name.endsWith('.csv')){
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target.result;
+      const workbook = XLSX.read(text, {type:'string'});
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      importRows(XLSX.utils.sheet_to_json(sheet, {defval:''}));
+    };
+    reader.readAsText(file, 'utf-8');
+    return;
+  }
+  if(name.endsWith('.xlsx') || name.endsWith('.xls')){
+    const reader = new FileReader();
+    reader.onload = e => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type:'array'});
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      importRows(XLSX.utils.sheet_to_json(sheet, {defval:''}));
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+  alert('Format non supporté. Utilise un fichier CSV ou Excel.');
+}
+
+
 function drawCharts(){
   Object.values(charts).forEach(ch=>ch && ch.destroy && ch.destroy());
 
@@ -711,14 +825,18 @@ function drawCharts(){
   charts.pareto = new Chart(document.getElementById('paretoChart'), {
     type:'bar',
     data:{labels:top20.map(a=>a.sku), datasets:[
-      {label:'Valeur annuelle', data:top20.map(a=>Math.round(a.annualValue/1000)), backgroundColor:'rgba(96,165,250,.7)', yAxisID:'y'},
-      {type:'line', label:'Cumul %', data:top20.map(a=>{cum+=a.annualValue; return +(cum/total*100).toFixed(1)}), borderColor:'#fbbf24', backgroundColor:'#fbbf24', yAxisID:'y1'}
+      {label:'Valeur annuelle (k$)', data:top20.map(a=>Math.round(a.annualValue/1000)), backgroundColor:'rgba(96,165,250,.78)', borderRadius:8, yAxisID:'y'},
+      {type:'line', label:'Cumul %', data:top20.map(a=>{cum+=a.annualValue; return +(cum/total*100).toFixed(1)}), borderColor:'#fbbf24', backgroundColor:'#fbbf24', borderWidth:3, pointRadius:3, tension:.28, yAxisID:'y1'}
     ]},
-    options:{responsive:true, plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}, y1:{position:'right', min:0,max:100,ticks:{color:'#93a4c7'}}}}
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{x:{ticks:{color:'#93a4c7', maxRotation:0, autoSkip:true}}, y:{ticks:{color:'#93a4c7'}}, y1:{position:'right', min:0,max:100, grid:{drawOnChartArea:false}, ticks:{color:'#93a4c7', callback:(v)=>v+'%'}}}}
   });
   const abcCounts=['A','B','C'].map(k=>state.articles.filter(a=>a.abc===k).length);
   charts.abc = new Chart(document.getElementById('abcChart'), { type:'doughnut', data:{labels:['A','B','C'], datasets:[{data:abcCounts, backgroundColor:['#60a5fa','#f59e0b','#a78bfa']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
-  charts.family = new Chart(document.getElementById('familyChart'), { type:'bar', data:{labels:state.familyValues.map(f=>f.family), datasets:[{label:'Valeur annuelle', data:state.familyValues.map(f=>Math.round(f.value/1000000*10)/10), backgroundColor:'rgba(34,197,94,.7)'}]}, options:{plugins:{legend:{display:false}}, scales:sharedScales} });
+  charts.family = new Chart(document.getElementById('familyChart'), {
+    type:'bar',
+    data:{labels:state.familyValues.map(f=>f.family), datasets:[{label:'Valeur annuelle (M$)', data:state.familyValues.map(f=>Math.round(f.value/1000000*10)/10), backgroundColor:'rgba(34,197,94,.78)', borderRadius:8}]},
+    options:{indexAxis:'y', maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{ticks:{color:'#93a4c7'}}}}
+  });
 
   charts.stockStatus = new Chart(document.getElementById('stockStatusChart'), { type:'bar', data:{labels:['OK','À commander','Stockout'], datasets:[{data:[state.articles.filter(a=>a.serviceStatus==='OK').length,state.articles.filter(a=>a.serviceStatus==='À commander').length,state.articles.filter(a=>a.serviceStatus==='Stockout').length], backgroundColor:['#22c55e','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{display:false}}, scales:sharedScales} });
   const stockCritical = [...state.articles].filter(a=>a.net<a.threshold).sort((a,b)=>(a.net-a.threshold)-(b.net-b.threshold)).slice(0,10);
@@ -730,11 +848,15 @@ function drawCharts(){
   const typeMap = {};
   state.exceptions.forEach(e=> typeMap[e.type] = (typeMap[e.type]||0)+1);
   charts.exceptionType = new Chart(document.getElementById('exceptionTypeChart'), { type:'doughnut', data:{labels:Object.keys(typeMap), datasets:[{data:Object.values(typeMap), backgroundColor:['#60a5fa','#a78bfa','#34d399','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
+  const causeMap = {};
+  state.exceptions.forEach(e=>{ const key = (e.cause || 'Non documentée').trim(); causeMap[key] = (causeMap[key]||0)+1; });
+  if(Object.keys(causeMap).length===0){ ['Erreur de prélèvement','Erreur de réception','Mouvement non confirmé','Dommage / rebut','Écart cyclique'].forEach((k,i)=>causeMap[k]=[6,4,5,2,3][i]); }
+  charts.cause = new Chart(document.getElementById('causeChart'), { type:'bar', data:{labels:Object.keys(causeMap), datasets:[{label:"Nb d’écarts", data:Object.values(causeMap), backgroundColor:['rgba(239,68,68,.78)','rgba(245,158,11,.78)','rgba(96,165,250,.78)','rgba(167,139,250,.78)','rgba(34,197,94,.78)'], borderRadius:10, maxBarThickness:48}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7', maxRotation:0, minRotation:0}}, y:{beginAtZero:true, ticks:{color:'#93a4c7'}}}} });
 
   const trs = state.trs;
   charts.trs = new Chart(document.getElementById('trsChart'), { type:'bar', data:{ labels:['Disponibilité','Performance','Qualité','TRS global'], datasets:[ {label:'Réel %', data:[trs.availability,trs.performance,trs.quality,trs.trs], backgroundColor:['rgba(96,165,250,.72)','rgba(167,139,250,.72)','rgba(74,222,128,.72)','rgba(251,191,36,.78)'], borderRadius:8 }, {label:'Cible %', data:[90,95,99,85], type:'line', borderColor:'#f87171', borderWidth:2, pointRadius:0, tension:0} ]}, options:{ plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{ x:{ticks:{color:'#93a4c7'}}, y:{min:0,max:100,ticks:{color:'#93a4c7'}} } } });
   const topEOQ = [...state.articles].sort((a,b)=>b.eoq-a.eoq).slice(0,8);
-  charts.eoq = new Chart(document.getElementById('eoqChart'), { type:'bar', data:{labels:topEOQ.map(a=>a.sku), datasets:[{label:'EOQ', data:topEOQ.map(a=>a.eoq), backgroundColor:'rgba(45,212,191,.72)', borderRadius:8},{label:'ROP', data:topEOQ.map(a=>a.rop), type:'line', borderColor:'#fbbf24', backgroundColor:'#fbbf24', tension:0.25}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:sharedScales} });
+  charts.eoq = new Chart(document.getElementById('eoqChart'), { type:'bar', data:{labels:topEOQ.map(a=>a.sku), datasets:[{label:'EOQ', data:topEOQ.map(a=>a.eoq), backgroundColor:'rgba(45,212,191,.78)', borderRadius:10, maxBarThickness:42},{label:'ROP', data:topEOQ.map(a=>a.rop), type:'line', borderColor:'#fbbf24', backgroundColor:'#fbbf24', borderWidth:3, pointRadius:4, tension:0.28}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#dbe7ff'}}}, scales:{x:{ticks:{color:'#93a4c7', maxRotation:0}}, y:{ticks:{color:'#93a4c7'}}}} });
   charts.xyz = new Chart(document.getElementById('xyzChart'), { type:'doughnut', data:{labels:['X','Y','Z'], datasets:[{data:['X','Y','Z'].map(k=>state.articles.filter(a=>a.xyz===k).length), backgroundColor:['#22c55e','#f59e0b','#ef4444']}]}, options:{plugins:{legend:{labels:{color:'#dbe7ff'}}}} });
 
   charts.supplier = new Chart(document.getElementById('supplierChart'), { type:'bar', data:{labels:state.suppliers.map(s=>s.name), datasets:[{label:'Conformité %', data:state.suppliers.map(s=>s.conformityRate), backgroundColor:'rgba(167,139,250,.72)'}]}, options:{plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#93a4c7'}}, y:{min:70,max:100,ticks:{color:'#93a4c7'}}}} });
@@ -785,6 +907,19 @@ function renderAll(){
   updateLiveDate();
   renderDashboard(); renderStock(); renderSurveillance(); renderTransport(); renderOrders(); renderSuppliers(); renderKPI(); renderAudit(); updateBadges(); drawCharts();
 }
+document.getElementById('topExportBtn').addEventListener('click', exportCurrentPage);
+document.getElementById('topImportBtn').addEventListener('click', ()=>document.getElementById('importFileInput').click());
+document.getElementById('stockImportBtn').addEventListener('click', ()=>document.getElementById('importFileInput').click());
+document.getElementById('stockCsvBtn').addEventListener('click', exportStockCsv);
+document.getElementById('survCsvBtn').addEventListener('click', exportSurveillanceCsv);
+document.getElementById('transportCsvBtn').addEventListener('click', exportTransportCsv);
+document.getElementById('ordersCsvBtn').addEventListener('click', exportOrdersCsv);
+document.getElementById('supplierCsvBtn').addEventListener('click', exportSuppliersCsv);
+document.getElementById('abceoqCsvBtn').addEventListener('click', exportAbcCsv);
+document.getElementById('auditCsvBtn').addEventListener('click', exportAuditCsv);
+document.getElementById('importFileInput').addEventListener('change', (e)=>handleImportFile(e.target.files[0]));
+document.getElementById('globalSearch').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ const q=e.target.value.toLowerCase(); if(!q) return; const inArt=state.articles.find(a=>a.sku.toLowerCase().includes(q)||a.article.toLowerCase().includes(q)); const inPO=state.pos.find(p=>p.poId.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q)); const inSup=state.suppliers.find(s=>s.name.toLowerCase().includes(q)); if(inArt){ openPage('stock'); document.getElementById('stockSearch').value = q; renderStock(); } else if(inPO){ openPage('orders'); } else if(inSup){ openPage('suppliers'); } else { openPage('surveillance'); } }});
+document.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); document.getElementById('globalSearch').focus(); }});
 document.getElementById('stockSearch').addEventListener('input', renderStock);
 document.getElementById('stockFilter').addEventListener('change', renderStock);
 document.getElementById('quickPoBtn').addEventListener('click', ()=>openPage('orders'));
@@ -797,6 +932,7 @@ document.getElementById('submitExceptionBtn').addEventListener('click', ()=>{
     id:'EXC-'+String(state.exceptions.length+1).padStart(3,'0'),
     sku, article:a?.article||'', type:document.getElementById('excType').value, severity:document.getElementById('excSeverity').value,
     net:a?.net||0, threshold:a?.threshold||0, coverageDays:a?.coverageDays||0, owner:'Superviseur DC', status:'Ouvert',
+    cause:document.getElementById('excCause').value,
     recommendation:document.getElementById('excAction').value || 'Analyser la cause racine et corriger'
   };
   state.exceptions.unshift(exc);
